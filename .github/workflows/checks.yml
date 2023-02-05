@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: yarn
-          node-version-file: ".node-version"
+          node-version-file: '.node-version'
       - run: yarn install --frozen-lockfile --non-interactive
       - run: yarn lint
       - run: yarn prettier --check .

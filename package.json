@@ -32,5 +32,13 @@
   },
   "peerDependencies": {
     "graphql": "*"
+  },
+  "jest": {
+    "collectCoverageFrom": ["./src/**"],
+    "coverageThreshold": {
+      "global": {
+        "lines": 99
+      }
+    }
   }
 }

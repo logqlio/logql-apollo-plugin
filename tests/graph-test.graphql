@@ -1,0 +1,21 @@
+type User {
+  id: ID!
+  name: String!
+  group: Group!
+  avatar: String
+}
+
+type Group {
+  id: ID!
+  name: String!
+  users: [User!]!
+}
+
+type Query {
+  hello: String
+  user(id: ID!): User!
+}
+
+type Mutation {
+  doSomething(x: Int!, text: String): Boolean
+}

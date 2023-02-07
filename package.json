@@ -34,7 +34,9 @@
     "graphql": "*"
   },
   "jest": {
-    "collectCoverageFrom": ["./src/**"],
+    "collectCoverageFrom": [
+      "./src/**"
+    ],
     "coverageThreshold": {
       "global": {
         "lines": 99

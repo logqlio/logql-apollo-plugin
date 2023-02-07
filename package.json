@@ -1,7 +1,19 @@
 {
   "name": "@logql/apollo-plugin",
   "version": "0.0.1",
-  "description": "Apollo plugin for Logql",
+  "description": "Logql plugin for Apollo Server",
+  "keywords": [
+    "apollo",
+    "graphql",
+    "logql",
+    "monitoring",
+    "tracing"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/logqlio/logql-apollo-plugin"
+  },
+  "license": "MIT",
   "main": "src/index.js",
   "scripts": {
     "test": "jest -i --colors --verbose --detectOpenHandles",
@@ -42,5 +54,13 @@
         "lines": 99
       }
     }
+  },
+  "files": [
+    "src/",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=14"
   }
 }

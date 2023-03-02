@@ -82,7 +82,7 @@ function getDuration(startTime) {
 }
 
 function pathAsString(resolver) {
-  return resolver.path.map((field) => (typeof field === 'number' ? 0 : field)).join('.')
+  return resolver.path.filter((item) => typeof item === 'string').join('.')
 }
 
 function LogqlApolloPlugin(options = Object.create(null)) {

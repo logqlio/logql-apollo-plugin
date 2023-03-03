@@ -648,13 +648,13 @@ describe('Request handling with Apollo Federation', () => {
             'content-length': expect.any(String),
             connection: 'close',
           },
+          variables: b.variables,
         },
         operation: {
           source: b.query,
           queryHash: createHash('sha256').update(b.query).digest('hex'),
           operationType: 'query',
           operationName: b.operationName,
-          variables: b.variables,
         },
         metrics: {
           startHrTime: [expect.any(Number), expect.any(Number)],
@@ -1326,13 +1326,13 @@ describe('Request handling with Apollo Server', () => {
           'content-length': expect.any(String),
           connection: 'close',
         },
+        variables,
       },
       operation: {
         source: query,
         queryHash: createHash('sha256').update(query).digest('hex'),
         operationType: 'mutation',
         operationName: 'JustDoIt',
-        variables,
       },
       metrics: {
         captureTraces: true,
@@ -1414,13 +1414,13 @@ describe('Request handling with Apollo Server', () => {
           'content-length': expect.any(String),
           connection: 'close',
         },
+        variables,
       },
       operation: {
         source: query,
         queryHash: createHash('sha256').update(query).digest('hex'),
         operationType: 'mutation',
         operationName: 'JustDoIt',
-        variables,
       },
       metrics: {
         captureTraces: true,
@@ -1505,11 +1505,11 @@ describe('Request handling with Apollo Server', () => {
           'transfer-encoding': 'chunked',
           connection: 'close',
         },
+        variables,
       },
       operation: {
         source: query,
         queryHash: createHash('sha256').update(query).digest('hex'),
-        variables,
       },
       metrics: {
         startHrTime: [expect.any(Number), expect.any(Number)],
@@ -1724,13 +1724,13 @@ describe('Request handling with Apollo Server', () => {
           'content-length': expect.any(String),
           connection: 'close',
         },
+        variables,
       },
       operation: {
         source: query,
         queryHash: createHash('sha256').update(query).digest('hex'),
         operationType: 'query',
         operationName: 'UserTree',
-        variables,
       },
       metrics: {
         captureTraces: true,

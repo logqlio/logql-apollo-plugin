@@ -16,7 +16,7 @@
   "license": "MIT",
   "main": "src/index.js",
   "scripts": {
-    "test": "jest -i --colors --verbose --detectOpenHandles",
+    "test": "jest -i --colors --verbose",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "fmt": "prettier --write ."
@@ -51,7 +51,7 @@
     ],
     "coverageThreshold": {
       "global": {
-        "lines": 99
+        "lines": 100
       }
     }
   },

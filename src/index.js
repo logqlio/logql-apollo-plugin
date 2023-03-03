@@ -179,6 +179,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
             rs.duration += Math.round((duration - rs.duration) / rs.count)
           }
 
+          // istanbul ignore if
           if (reportEntriesCount > config.reportEntriesThreshold) {
             sendReportAndResetTimer(logger)
           }

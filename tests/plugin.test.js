@@ -1622,12 +1622,12 @@ describe('Request handling with Apollo Server', () => {
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.group.users.0.id': {
+            'user.group.users.id': {
               count: 2,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.group.users.0.name': {
+            'user.group.users.name': {
               count: 2,
               duration: expect.any(Number),
               errors: 0,
@@ -1662,10 +1662,10 @@ describe('Request handling with Apollo Server', () => {
             'user.group.id',
             'user.group.name',
             'user.group.users',
-            'user.group.users.0.id',
-            'user.group.users.0.name',
-            'user.group.users.0.id',
-            'user.group.users.0.name',
+            'user.group.users.id',
+            'user.group.users.name',
+            'user.group.users.id',
+            'user.group.users.name',
           ],
         },
       ],
@@ -1784,17 +1784,17 @@ describe('Request handling with Apollo Server', () => {
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.group.users.0.avatar': {
+            'user.group.users.avatar': {
               count: 2,
               duration: expect.any(Number),
               errors: 2,
             },
-            'user.group.users.0.id': {
+            'user.group.users.id': {
               count: 2,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.group.users.0.name': {
+            'user.group.users.name': {
               count: 2,
               duration: expect.any(Number),
               errors: 0,

@@ -11,7 +11,7 @@ npm i @logql/apollo-plugin
 OR
 
 ```sh
-yarn install @logql/apollo-plugin
+yarn add @logql/apollo-plugin
 ```
 
 ## Usage

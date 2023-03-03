@@ -25,13 +25,13 @@ async function sendError(errors, schemaHash, requestContext, config, logger) {
       headers,
       method: http.method,
       search: http.search,
+      variables,
     },
     operation: {
       source,
       queryHash,
       operationName,
       operationType: operation && operation.operation,
-      variables,
     },
     metrics,
     errors: errors.map((err) => ({

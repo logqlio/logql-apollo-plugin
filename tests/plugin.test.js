@@ -325,6 +325,12 @@ describe('Request handling with Apollo Federation', () => {
         source: query,
         queryHash: createHash('sha256').update(query).digest('hex'),
       },
+      profile: {
+        parsingEnd: expect.any(Number),
+        parsingStart: expect.any(Number),
+        receivedAt: expect.any(String),
+        resolvers: [],
+      },
       metrics: {
         startHrTime: [expect.any(Number), expect.any(Number)],
         persistedQueryHit: false,
@@ -408,6 +414,14 @@ describe('Request handling with Apollo Federation', () => {
       operation: {
         source: query,
         queryHash: createHash('sha256').update(query).digest('hex'),
+      },
+      profile: {
+        parsingEnd: expect.any(Number),
+        parsingStart: expect.any(Number),
+        receivedAt: expect.any(String),
+        resolvers: [],
+        validationEnd: expect.any(Number),
+        validationStart: expect.any(Number),
       },
       metrics: {
         startHrTime: [expect.any(Number), expect.any(Number)],
@@ -502,6 +516,16 @@ describe('Request handling with Apollo Federation', () => {
         queryHash: createHash('sha256').update(query).digest('hex'),
         operationType: 'query',
         operationName: 'GetAllProducts',
+      },
+      profile: {
+        executionEnd: expect.any(Number),
+        executionStart: expect.any(Number),
+        parsingEnd: expect.any(Number),
+        parsingStart: expect.any(Number),
+        receivedAt: expect.any(String),
+        resolvers: [],
+        validationEnd: expect.any(Number),
+        validationStart: expect.any(Number),
       },
       metrics: {
         startHrTime: [expect.any(Number), expect.any(Number)],
@@ -655,6 +679,16 @@ describe('Request handling with Apollo Federation', () => {
           queryHash: createHash('sha256').update(b.query).digest('hex'),
           operationType: 'query',
           operationName: b.operationName,
+        },
+        profile: {
+          executionEnd: expect.any(Number),
+          executionStart: expect.any(Number),
+          parsingEnd: expect.any(Number),
+          parsingStart: expect.any(Number),
+          receivedAt: expect.any(String),
+          resolvers: [],
+          validationEnd: expect.any(Number),
+          validationStart: expect.any(Number),
         },
         metrics: {
           startHrTime: [expect.any(Number), expect.any(Number)],
@@ -1248,6 +1282,12 @@ describe('Request handling with Apollo Server', () => {
         source: query,
         queryHash: createHash('sha256').update(query).digest('hex'),
       },
+      profile: {
+        parsingEnd: expect.any(Number),
+        parsingStart: expect.any(Number),
+        receivedAt: expect.any(String),
+        resolvers: [],
+      },
       metrics: {
         startHrTime: [expect.any(Number), expect.any(Number)],
         persistedQueryHit: false,
@@ -1333,6 +1373,23 @@ describe('Request handling with Apollo Server', () => {
         queryHash: createHash('sha256').update(query).digest('hex'),
         operationType: 'mutation',
         operationName: 'JustDoIt',
+      },
+      profile: {
+        executionEnd: expect.any(Number),
+        executionStart: expect.any(Number),
+        parsingEnd: expect.any(Number),
+        parsingStart: expect.any(Number),
+        receivedAt: expect.any(String),
+        resolvers: [
+          {
+            end: expect.any(Number),
+            error: true,
+            path: ['doSomething'],
+            start: expect.any(Number),
+          },
+        ],
+        validationEnd: expect.any(Number),
+        validationStart: expect.any(Number),
       },
       metrics: {
         captureTraces: true,
@@ -1422,6 +1479,16 @@ describe('Request handling with Apollo Server', () => {
         operationType: 'mutation',
         operationName: 'JustDoIt',
       },
+      profile: {
+        executionEnd: expect.any(Number),
+        executionStart: expect.any(Number),
+        parsingEnd: expect.any(Number),
+        parsingStart: expect.any(Number),
+        receivedAt: expect.any(String),
+        resolvers: [],
+        validationEnd: expect.any(Number),
+        validationStart: expect.any(Number),
+      },
       metrics: {
         captureTraces: true,
         startHrTime: [expect.any(Number), expect.any(Number)],
@@ -1510,6 +1577,14 @@ describe('Request handling with Apollo Server', () => {
       operation: {
         source: query,
         queryHash: createHash('sha256').update(query).digest('hex'),
+      },
+      profile: {
+        parsingEnd: expect.any(Number),
+        parsingStart: expect.any(Number),
+        receivedAt: expect.any(String),
+        resolvers: [],
+        validationEnd: expect.any(Number),
+        validationStart: expect.any(Number),
       },
       metrics: {
         startHrTime: [expect.any(Number), expect.any(Number)],
@@ -1731,6 +1806,95 @@ describe('Request handling with Apollo Server', () => {
         queryHash: createHash('sha256').update(query).digest('hex'),
         operationType: 'query',
         operationName: 'UserTree',
+      },
+      profile: {
+        executionEnd: expect.any(Number),
+        executionStart: expect.any(Number),
+        parsingEnd: expect.any(Number),
+        parsingStart: expect.any(Number),
+        receivedAt: expect.any(String),
+        resolvers: [
+          {
+            end: expect.any(Number),
+            error: false,
+            path: ['user'],
+            start: expect.any(Number),
+          },
+          {
+            end: expect.any(Number),
+            error: false,
+            path: ['user', 'id'],
+            start: expect.any(Number),
+          },
+          {
+            end: expect.any(Number),
+            error: false,
+            path: ['user', 'name'],
+            start: expect.any(Number),
+          },
+          {
+            end: expect.any(Number),
+            error: false,
+            path: ['user', 'group'],
+            start: expect.any(Number),
+          },
+          {
+            end: expect.any(Number),
+            error: false,
+            path: ['user', 'group', 'id'],
+            start: expect.any(Number),
+          },
+          {
+            end: expect.any(Number),
+            error: false,
+            path: ['user', 'group', 'name'],
+            start: expect.any(Number),
+          },
+          {
+            end: expect.any(Number),
+            error: false,
+            path: ['user', 'group', 'users'],
+            start: expect.any(Number),
+          },
+          {
+            end: expect.any(Number),
+            error: false,
+            path: ['user', 'group', 'users', 0, 'id'],
+            start: expect.any(Number),
+          },
+          {
+            end: expect.any(Number),
+            error: false,
+            path: ['user', 'group', 'users', 0, 'name'],
+            start: expect.any(Number),
+          },
+          {
+            end: expect.any(Number),
+            error: true,
+            path: ['user', 'group', 'users', 0, 'avatar'],
+            start: expect.any(Number),
+          },
+          {
+            end: expect.any(Number),
+            error: false,
+            path: ['user', 'group', 'users', 1, 'id'],
+            start: expect.any(Number),
+          },
+          {
+            end: expect.any(Number),
+            error: false,
+            path: ['user', 'group', 'users', 1, 'name'],
+            start: expect.any(Number),
+          },
+          {
+            end: expect.any(Number),
+            error: true,
+            path: ['user', 'group', 'users', 1, 'avatar'],
+            start: expect.any(Number),
+          },
+        ],
+        validationEnd: expect.any(Number),
+        validationStart: expect.any(Number),
       },
       metrics: {
         captureTraces: true,

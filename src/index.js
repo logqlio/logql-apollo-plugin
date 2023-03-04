@@ -9,7 +9,7 @@ async function sendSchema(schema, schemaHash, config, logger) {
   return await sendWithRetry(`schemas/${schemaHash}`, text(schema), config, logger)
 }
 
-async function sendError(errors, schemaHash, requestContext, config, logger) {
+async function sendError(errors, schemaHash, profile, requestContext, config, logger) {
   const { sendVariables, sendHeaders } = config
   const { source, queryHash, request, metrics, operationName, operation } = requestContext
   const { http } = request
@@ -33,6 +33,7 @@ async function sendError(errors, schemaHash, requestContext, config, logger) {
       operationName,
       operationType: operation && operation.operation,
     },
+    profile,
     metrics,
     errors: errors.map((err) => ({
       ...err,
@@ -221,7 +222,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
         },
         willSendResponse(requestContext) {
           if (requestContext.errors) {
-            sendError(requestContext.errors, schemaHash, requestContext, config, logger)
+            sendError(requestContext.errors, schemaHash, profile, requestContext, config, logger)
           } else {
             sendOperation(syncedQueries, schemaHash, profile, requestContext, config, logger)
           }

@@ -6,5 +6,15 @@
   "plugins": ["security", "prettier"],
   "parserOptions": {
     "ecmaVersion": 2018
-  }
+  },
+  "overrides": [
+    {
+      "files": ["tests/**.js"],
+      "env": {
+        "jest/globals": true
+      },
+      "plugins": ["jest"],
+      "extends": ["plugin:jest/recommended"]
+    }
+  ]
 }

@@ -1,4 +1,3 @@
-/* eslint-disable security/detect-object-injection */
 process.env.APOLLO_KEY = 'service:fake-id:123456789ABC-fakefake1'
 process.env.APOLLO_GRAPH_ID = 'fake-id'
 process.env.APOLLO_GRAPH_VARIANT = 'fake-variant'

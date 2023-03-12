@@ -116,6 +116,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
     sendReportAndStopTimer(logger)
     report = { schemaHash, operations: Object.create(null) }
     reportTimer = setInterval(() => {
+      /* istanbul ignore else */
       if (report) {
         sendReport(report, config, logger).catch((err) => logger.error(`logql-plugin: Failed to send metrics: ${err}`))
         report = { schemaHash, operations: Object.create(null) }
@@ -148,13 +149,14 @@ function LogqlApolloPlugin(options = Object.create(null)) {
       }
 
       function requestWillBeSent(requestContext) {
+        /* istanbul ignore if */
         if (!report) {
           // Added in case a request is processed after the server stopped - should never happen
-          /* istanbul ignore next */
           return
         }
 
         const { queryHash } = requestContext
+        /* istanbul ignore else */
         if (queryHash) {
           const duration = getDuration(requestStartTime)
           const hasError = !!requestContext.errors

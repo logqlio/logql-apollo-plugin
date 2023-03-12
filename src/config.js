@@ -20,6 +20,7 @@ function getConfig(options) {
     const validationError = fromZodError(err, {
       prefix: 'Failed to initialize logql plugin due to invalid options',
     })
+    /* istanbul ignore if */
     if (process.env.NODE_ENV !== 'test') {
       console.error(`logql-plugin: ${validationError.message}`)
     }

@@ -26,7 +26,7 @@
     "lru-cache": "^8.0.0",
     "node-fetch": "^2.6.7",
     "zod": "^3.20.2",
-    "zod-validation-error": "^0.3.0"
+    "zod-validation-error": "^1.0.1"
   },
   "devDependencies": {
     "@apollo/gateway": "^2.2.2",

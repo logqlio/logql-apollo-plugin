@@ -13,16 +13,18 @@ const Config = z.object({
   endpoint: z.string().url().default('https://ingress.logql.io'),
 })
 
-function validate(input, zodSchema) {
-  try {
-    return zodSchema.parse(input)
-  } catch (err) {
-    throw Error(`logql-plugin: ${fromZodError(err)}`)
-  }
-}
-
 function getConfig(options) {
-  return validate(options, Config)
+  try {
+    return Config.parse(options)
+  } catch (err) {
+    const validationError = fromZodError(err, {
+      prefix: 'Failed to initialize logql plugin due to invalid options',
+    })
+    if (process.env.NODE_ENV !== 'test') {
+      console.error(`logql-plugin: ${validationError.message}`)
+    }
+    throw Error(`LogQLPluginInitError: ${validationError.message}`, { cause: err })
+  }
 }
 
 module.exports = { getConfig }

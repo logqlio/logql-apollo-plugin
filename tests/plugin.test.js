@@ -103,19 +103,27 @@ describe('Config Validation', () => {
   const initPlugin = (config) => () => LogqlApolloPlugin(config)
 
   it('fail when given no config', () => {
-    expect(initPlugin()).toThrow('logql-plugin: Error: Validation error: Required at "apiKey"; Required at "projectId"')
+    expect(initPlugin()).toThrow(
+      'LogQLPluginInitError: Failed to initialize logql plugin due to invalid options: Required at "apiKey"; Required at "projectId"'
+    )
   })
 
   it('fail when given config is null', () => {
-    expect(initPlugin()).toThrow('logql-plugin: Error: Validation error: Required at "apiKey"; Required at "projectId"')
+    expect(initPlugin()).toThrow(
+      'LogQLPluginInitError: Failed to initialize logql plugin due to invalid options: Required at "apiKey"; Required at "projectId"'
+    )
   })
 
   it('fail when apiKey is missing', () => {
-    expect(initPlugin({ projectId: randomUUID() })).toThrow('logql-plugin: Error: Validation error: Required at "apiKey"')
+    expect(initPlugin({ projectId: randomUUID() })).toThrow(
+      'LogQLPluginInitError: Failed to initialize logql plugin due to invalid options: Required at "apiKey"'
+    )
   })
 
   it('fail when projectId is missing', () => {
-    expect(initPlugin({ apiKey: 'logql:FAKE' })).toThrow('logql-plugin: Error: Validation error: Required at "projectId"')
+    expect(initPlugin({ apiKey: 'logql:FAKE' })).toThrow(
+      'LogQLPluginInitError: Failed to initialize logql plugin due to invalid options: Required at "projectId"'
+    )
   })
 
   it('work with valid minimal config', () => {

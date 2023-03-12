@@ -46,10 +46,22 @@ async function sendError(errors, schemaHash, profile, requestContext, config, lo
   return await sendWithRetry('errors', json(payload), config, logger)
 }
 
-async function sendReport(report, config, logger) {
+async function sendReport(reportMap, config, logger) {
+  const operationEntries = Object.entries(reportMap.operations)
+
   // Don't send anything if the report is empty
-  if (!Object.keys(report.operations).length) {
+  if (operationEntries.length === 0) {
     return
+  }
+
+  // Transform the report from a key/value format to array
+  const report = {
+    ...reportMap,
+    operations: operationEntries.map(([queryHash, operation]) => ({
+      ...operation,
+      queryHash,
+      resolvers: Object.entries(operation.resolvers).map(([path, resolver]) => ({ ...resolver, path })),
+    })),
   }
   return await sendWithRetry('metrics', json(report), config, logger)
 }

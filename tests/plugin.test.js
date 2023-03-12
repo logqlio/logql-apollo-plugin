@@ -91,7 +91,7 @@ beforeAll(() => {
 
   // Since we use an Apollo Studio Key to enable federation, we need to mock the usage reporting
   // This is not critical, as we already have a nock.disableNetConnect() nothing is sent to the internet
-  // But this preventing noisy logs
+  // But removes noisy logs
   nock('https://usage-reporting.api.apollographql.com/api').persist().post('/ingress/traces').reply(204)
 })
 
@@ -285,7 +285,7 @@ describe('Request handling with Apollo Federation', () => {
       graphqlServer = null
     }
     nock.abortPendingRequests()
-    //nock.cleanAll()
+    nock.cleanAll()
     //nock.recorder.clear()
   })
 
@@ -358,14 +358,15 @@ describe('Request handling with Apollo Federation', () => {
     })
     expect(report).toEqual({
       schemaHash,
-      operations: {
-        [createHash('sha256').update(query).digest('hex')]: {
+      operations: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 1,
-          resolvers: {},
+          resolvers: [],
         },
-      },
+      ],
     })
   })
 
@@ -458,14 +459,15 @@ describe('Request handling with Apollo Federation', () => {
     })
     expect(report).toEqual({
       schemaHash,
-      operations: {
-        [createHash('sha256').update(query).digest('hex')]: {
+      operations: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 1,
-          resolvers: {},
+          resolvers: [],
         },
-      },
+      ],
     })
   })
 
@@ -563,14 +565,15 @@ describe('Request handling with Apollo Federation', () => {
     })
     expect(report).toEqual({
       schemaHash,
-      operations: {
-        [createHash('sha256').update(query).digest('hex')]: {
+      operations: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 1,
-          resolvers: {},
+          resolvers: [],
         },
-      },
+      ],
     })
   })
 
@@ -733,12 +736,13 @@ describe('Request handling with Apollo Federation', () => {
     }
     expect(report).toEqual({
       schemaHash,
-      operations: Object.fromEntries(
-        batch.map((b) => [
-          createHash('sha256').update(b.query).digest('hex'),
-          { count: 1, duration: expect.any(Number), errors: 1, resolvers: {} },
-        ])
-      ),
+      operations: batch.map((b) => ({
+        queryHash: createHash('sha256').update(b.query).digest('hex'),
+        count: 1,
+        duration: expect.any(Number),
+        errors: 1,
+        resolvers: [],
+      })),
     })
   })
 
@@ -866,14 +870,15 @@ describe('Request handling with Apollo Federation', () => {
     expect(logql.activeMocks()).toHaveLength(0)
     expect(report).toEqual({
       schemaHash,
-      operations: {
-        [createHash('sha256').update(query).digest('hex')]: {
+      operations: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
           count: 7,
           duration: expect.any(Number),
           errors: 0,
-          resolvers: {},
+          resolvers: [],
         },
-      },
+      ],
     })
     expect(operation).toEqual({
       schemaHash,
@@ -963,14 +968,15 @@ describe('Request handling with Apollo Federation', () => {
     expect(logql.activeMocks()).toHaveLength(0)
     expect(report).toEqual({
       schemaHash,
-      operations: {
-        [createHash('sha256').update(query).digest('hex')]: {
+      operations: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
           count: 2,
           duration: expect.any(Number),
           errors: 0,
-          resolvers: {},
+          resolvers: [],
         },
-      },
+      ],
     })
     expect(operation).toEqual({
       schemaHash,
@@ -1070,14 +1076,15 @@ describe('Request handling with Apollo Federation', () => {
     expect(logql.activeMocks()).toHaveLength(0)
     expect(report).toEqual({
       schemaHash,
-      operations: {
-        [createHash('sha256').update(query).digest('hex')]: {
+      operations: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 0,
-          resolvers: {},
+          resolvers: [],
         },
-      },
+      ],
     })
     expect(operation).toEqual({
       schemaHash,
@@ -1152,14 +1159,15 @@ describe('Request handling with Apollo Federation', () => {
     expect(logql.activeMocks()).toHaveLength(0)
     expect(report).toEqual({
       schemaHash,
-      operations: {
-        [createHash('sha256').update(query).digest('hex')]: {
+      operations: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 0,
-          resolvers: {},
+          resolvers: [],
         },
-      },
+      ],
     })
     expect(operation).toEqual({
       schemaHash,
@@ -1323,14 +1331,15 @@ describe('Request handling with Apollo Server', () => {
     })
     expect(report).toEqual({
       schemaHash,
-      operations: {
-        [createHash('sha256').update(query).digest('hex')]: {
+      operations: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 1,
-          resolvers: {},
+          resolvers: [],
         },
-      },
+      ],
     })
   })
 
@@ -1422,20 +1431,22 @@ describe('Request handling with Apollo Server', () => {
     })
     expect(report).toEqual({
       schemaHash,
-      operations: {
-        [createHash('sha256').update(query).digest('hex')]: {
+      operations: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 1,
-          resolvers: {
-            doSomething: {
+          resolvers: [
+            {
+              path: 'doSomething',
               count: 1,
               duration: expect.any(Number),
               errors: 1,
             },
-          },
+          ],
         },
-      },
+      ],
     })
   })
 
@@ -1524,14 +1535,15 @@ describe('Request handling with Apollo Server', () => {
     })
     expect(report).toEqual({
       schemaHash,
-      operations: {
-        [createHash('sha256').update(query).digest('hex')]: {
+      operations: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 1,
-          resolvers: {},
+          resolvers: [],
         },
-      },
+      ],
     })
   })
 
@@ -1623,14 +1635,15 @@ describe('Request handling with Apollo Server', () => {
     })
     expect(report).toEqual({
       schemaHash,
-      operations: {
-        [createHash('sha256').update(query).digest('hex')]: {
+      operations: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 1,
-          resolvers: {},
+          resolvers: [],
         },
-      },
+      ],
     })
   })
 
@@ -1674,60 +1687,70 @@ describe('Request handling with Apollo Server', () => {
     expect(logql.pendingMocks()).toHaveLength(0)
     expect(report).toEqual({
       schemaHash,
-      operations: {
-        [createHash('sha256').update(query).digest('hex')]: {
+      operations: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 0,
-          resolvers: {
-            user: {
+          resolvers: expect.arrayContaining([
+            {
+              path: 'user',
               count: 1,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.group': {
+            {
+              path: 'user.group',
               count: 1,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.group.id': {
+            {
+              path: 'user.group.id',
               count: 1,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.group.name': {
+            {
+              path: 'user.group.name',
               count: 1,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.group.users': {
+            {
+              path: 'user.group.users',
               count: 1,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.group.users.id': {
+            {
+              path: 'user.group.users.id',
               count: 2,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.group.users.name': {
+            {
+              path: 'user.group.users.name',
               count: 2,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.id': {
+            {
+              path: 'user.id',
               count: 1,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.name': {
+            {
+              path: 'user.name',
               count: 1,
               duration: expect.any(Number),
               errors: 0,
             },
-          },
+          ]),
         },
-      },
+      ],
     })
     expect(operation).toEqual({
       schemaHash,
@@ -1925,65 +1948,76 @@ describe('Request handling with Apollo Server', () => {
     })
     expect(report).toEqual({
       schemaHash,
-      operations: {
-        [createHash('sha256').update(query).digest('hex')]: {
+      operations: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 1,
-          resolvers: {
-            user: {
+          resolvers: expect.arrayContaining([
+            {
+              path: 'user',
               count: 1,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.group': {
+            {
+              path: 'user.group',
               count: 1,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.group.id': {
+            {
+              path: 'user.group.id',
               count: 1,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.group.name': {
+            {
+              path: 'user.group.name',
               count: 1,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.group.users': {
+            {
+              path: 'user.group.users',
               count: 1,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.group.users.avatar': {
+            {
+              path: 'user.group.users.avatar',
               count: 2,
               duration: expect.any(Number),
               errors: 2,
             },
-            'user.group.users.id': {
+            {
+              path: 'user.group.users.id',
               count: 2,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.group.users.name': {
+            {
+              path: 'user.group.users.name',
               count: 2,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.id': {
+            {
+              path: 'user.id',
               count: 1,
               duration: expect.any(Number),
               errors: 0,
             },
-            'user.name': {
+            {
+              path: 'user.name',
               count: 1,
               duration: expect.any(Number),
               errors: 0,
             },
-          },
+          ]),
         },
-      },
+      ],
     })
   })
 

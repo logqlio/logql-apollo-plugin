@@ -90,8 +90,8 @@ async function sendOperation(syncedQueries, schemaHash, profile, requestContext,
 }
 
 function getDuration(startTime) {
-  const [seconds, nanos] = process.hrtime(startTime)
-  return seconds * 1e9 + nanos
+  const endTime = process.hrtime.bigint()
+  return Number((endTime - startTime) / 1000n)
 }
 
 function pathAsString(resolver) {
@@ -154,7 +154,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
 
     requestDidStart({ logger }) {
       // See https://stackoverflow.com/questions/18031839/how-to-use-process-hrtime-to-get-execution-time-of-async-function
-      const requestStartTime = process.hrtime()
+      const requestStartTime = process.hrtime.bigint()
       const profile = {
         receivedAt: new Date().toISOString(),
         resolvers: [],

@@ -61,6 +61,7 @@ async function sendReport(reportMap, config, logger) {
       ...operation,
       queryHash,
       resolvers: Object.entries(operation.resolvers).map(([path, resolver]) => ({ ...resolver, path })),
+      clients: Object.entries(operation.clients).map(([name, client]) => ({ ...client, name })),
     })),
   }
   return await sendWithRetry('metrics', json(report), config, logger)
@@ -167,19 +168,30 @@ function LogqlApolloPlugin(options = Object.create(null)) {
           return
         }
 
-        const { queryHash } = requestContext
+        const { queryHash, request } = requestContext
         /* istanbul ignore else */
         if (queryHash) {
           const duration = getDuration(requestStartTime)
           const hasError = !!requestContext.errors
           if (!(queryHash in report.operations)) {
-            report.operations[`${queryHash}`] = { count: 0, duration: 0, errors: 0, resolvers: {} }
+            report.operations[`${queryHash}`] = { count: 0, duration: 0, errors: 0, resolvers: {}, clients: {} }
             reportEntriesCount++
           }
           const operation = report.operations[`${queryHash}`]
           operation.count++
           operation.errors += hasError ? 1 : 0
           operation.duration += Math.round((duration - operation.duration) / operation.count)
+
+          const clientName = request.http.headers.get('apollographql-client-name')
+          if (clientName) {
+            if (!(clientName in operation.clients)) {
+              operation.clients[`${clientName}`] = { count: 0, duration: 0, errors: 0 }
+            }
+            const client = operation.clients[`${clientName}`]
+            client.count++
+            client.errors += hasError ? 1 : 0
+            client.duration += Math.round((duration - operation.duration) / operation.count)
+          }
 
           for (const resolver of profile.resolvers) {
             const key = pathAsString(resolver)

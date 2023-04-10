@@ -365,6 +365,7 @@ describe('Request handling with Apollo Federation', () => {
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
+          clients: [],
         },
       ],
     })
@@ -466,6 +467,14 @@ describe('Request handling with Apollo Federation', () => {
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
+          clients: [
+            {
+              name: 'Web',
+              count: 1,
+              duration: expect.any(Number),
+              errors: 1,
+            },
+          ],
         },
       ],
     })
@@ -572,6 +581,7 @@ describe('Request handling with Apollo Federation', () => {
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
+          clients: [],
         },
       ],
     })
@@ -742,6 +752,7 @@ describe('Request handling with Apollo Federation', () => {
         duration: expect.any(Number),
         errors: 1,
         resolvers: [],
+        clients: [],
       })),
     })
   })
@@ -877,6 +888,7 @@ describe('Request handling with Apollo Federation', () => {
           duration: expect.any(Number),
           errors: 0,
           resolvers: [],
+          clients: [],
         },
       ],
     })
@@ -975,6 +987,7 @@ describe('Request handling with Apollo Federation', () => {
           duration: expect.any(Number),
           errors: 0,
           resolvers: [],
+          clients: [],
         },
       ],
     })
@@ -1083,6 +1096,7 @@ describe('Request handling with Apollo Federation', () => {
           duration: expect.any(Number),
           errors: 0,
           resolvers: [],
+          clients: [],
         },
       ],
     })
@@ -1166,6 +1180,7 @@ describe('Request handling with Apollo Federation', () => {
           duration: expect.any(Number),
           errors: 0,
           resolvers: [],
+          clients: [],
         },
       ],
     })
@@ -1338,6 +1353,7 @@ describe('Request handling with Apollo Server', () => {
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
+          clients: [],
         },
       ],
     })
@@ -1445,6 +1461,7 @@ describe('Request handling with Apollo Server', () => {
               errors: 1,
             },
           ],
+          clients: [],
         },
       ],
     })
@@ -1542,6 +1559,7 @@ describe('Request handling with Apollo Server', () => {
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
+          clients: [],
         },
       ],
     })
@@ -1642,6 +1660,7 @@ describe('Request handling with Apollo Server', () => {
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
+          clients: [],
         },
       ],
     })
@@ -1749,6 +1768,7 @@ describe('Request handling with Apollo Server', () => {
               errors: 0,
             },
           ]),
+          clients: [],
         },
       ],
     })
@@ -2016,6 +2036,7 @@ describe('Request handling with Apollo Server', () => {
               errors: 0,
             },
           ]),
+          clients: [],
         },
       ],
     })

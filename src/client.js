@@ -24,7 +24,7 @@ function text(input) {
 }
 
 async function sendWithRetry(path, data, config, logger) {
-  const { endpoint, projectId, apiKey, timeout } = config
+  const { endpoint, projectId, apiKey, timeout, environment } = config
   const url = `${endpoint}/${projectId}/${path}`
   const requestId = randomUUID()
 
@@ -46,6 +46,7 @@ async function sendWithRetry(path, data, config, logger) {
               'x-request-id': requestId,
               'x-attempt-count': attempt,
               'x-api-key': apiKey,
+              'x-environment': environment,
             },
             body: compressed,
             signal: controller.signal,

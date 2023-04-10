@@ -79,6 +79,7 @@ function logqlMock(projectId) {
       'content-encoding': 'gzip',
       'x-request-id': /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/,
       'x-api-key': 'logql:FAKE_API_KEY',
+      'x-environment': '',
       'accept-encoding': 'gzip,deflate',
     },
   })

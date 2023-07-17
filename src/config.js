@@ -3,7 +3,7 @@ const { fromZodError } = require('zod-validation-error')
 
 const Config = z.object({
   apiKey: z.string().startsWith('logql:'),
-  projectId: z.string().uuid(),
+  projectId: z.string(),
   environment: z.string().trim().toLowerCase().max(128).default(''),
   timeout: z.number().min(0).default(15000),
   sendVariables: z.boolean().default(false),

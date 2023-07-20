@@ -1,7 +1,8 @@
+// @ts-check
 const { z } = require('zod')
 const { fromZodError } = require('zod-validation-error')
 
-const Config = z.object({
+const ConfigSchema = z.object({
   apiKey: z.string().startsWith('logql:'),
   projectId: z.string(),
   environment: z.string().trim().toLowerCase().max(128).default(''),
@@ -14,9 +15,16 @@ const Config = z.object({
   endpoint: z.string().url().default('https://ingress.logql.io'),
 })
 
+/**
+ * @typedef {z.infer<typeof ConfigSchema>} Config
+ */
+
+/**
+ * @param {unknown} options
+ */
 function getConfig(options) {
   try {
-    return Config.parse(options)
+    return ConfigSchema.parse(options)
   } catch (err) {
     const validationError = fromZodError(err, {
       prefix: 'Failed to initialize logql plugin due to invalid options',
@@ -25,7 +33,7 @@ function getConfig(options) {
     if (process.env.NODE_ENV !== 'test') {
       console.error(`logql-plugin: ${validationError.message}`)
     }
-    throw Error(`LogQLPluginInitError: ${validationError.message}`, { cause: err })
+    throw Error(`LogQLPluginInitError: ${validationError.message}`)
   }
 }
 

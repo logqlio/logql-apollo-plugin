@@ -1,3 +1,4 @@
+// @ts-check
 const { createHash } = require('crypto')
 const { printSchema, responsePathAsArray } = require('graphql')
 const LRUCache = require('lru-cache')
@@ -5,26 +6,62 @@ const LRUCache = require('lru-cache')
 const { getConfig } = require('./config')
 const { json, text, sendWithRetry } = require('./client')
 
+/**
+ * @typedef {import('./config').Config} Config
+ * @typedef {import('@apollo/utils.logger').Logger} Logger
+ * @typedef {import('@apollo/server').GraphQLRequestContextWillSendResponse<*>} RequestContext
+ *
+ * @typedef {Object} Resolver
+ * @property {(string | number)[]} path
+ * @property {number} start
+ * @property {number} [end]
+ * @property {boolean} [error]
+ *
+ * @typedef {Object} Profile
+ * @property {string} receivedAt
+ * @property {Resolver[]} resolvers
+ * @property {number} [parsingStart]
+ * @property {number} [parsingEnd]
+ * @property {number} [validationStart]
+ * @property {number} [validationEnd]
+ * @property {number} [executionStart]
+ * @property {number} [executionEnd]
+ */
+
+/**
+ * @param {string} schema
+ * @param {string} schemaHash
+ * @param {Config} config
+ * @param {Logger} logger
+ */
 async function sendSchema(schema, schemaHash, config, logger) {
   return await sendWithRetry(`schemas/${schemaHash}`, text(schema), config, logger)
 }
 
+/**
+ * @param {*} errors
+ * @param {string} schemaHash
+ * @param {Profile} profile
+ * @param {RequestContext} requestContext
+ * @param {Config} config
+ * @param {Logger} logger
+ */
 async function sendError(errors, schemaHash, profile, requestContext, config, logger) {
   const { sendVariables, sendHeaders } = config
   const { source, queryHash, request, metrics, operationName, operation } = requestContext
   const { http } = request
   const variables = sendVariables ? request.variables : Object.create(null)
-  const headers = sendHeaders ? Object.fromEntries(http.headers) : Object.create(null)
+  const headers = sendHeaders && http?.headers ? Object.fromEntries(http.headers) : Object.create(null)
   const payload = {
     schemaHash,
     client: {
-      name: http.headers.get('apollographql-client-name'),
-      version: http.headers.get('apollographql-client-version'),
+      name: http?.headers.get('apollographql-client-name'),
+      version: http?.headers.get('apollographql-client-version'),
     },
     request: {
       headers,
-      method: http.method,
-      search: http.search,
+      method: http?.method,
+      search: http?.search,
       variables,
     },
     operation: {
@@ -46,6 +83,11 @@ async function sendError(errors, schemaHash, profile, requestContext, config, lo
   return await sendWithRetry('errors', json(payload), config, logger)
 }
 
+/**
+ * @param {*} reportMap
+ * @param {Config} config
+ * @param {Logger} logger
+ */
 async function sendReport(reportMap, config, logger) {
   const operationEntries = Object.entries(reportMap.operations)
 
@@ -67,6 +109,14 @@ async function sendReport(reportMap, config, logger) {
   return await sendWithRetry('metrics', json(report), config, logger)
 }
 
+/**
+ * @param {*} syncedQueries
+ * @param {string} schemaHash
+ * @param {*} profile
+ * @param {RequestContext} requestContext
+ * @param {Config} config
+ * @param {Logger} logger
+ */
 async function sendOperation(syncedQueries, schemaHash, profile, requestContext, config, logger) {
   const { source, queryHash, operationName, operation } = requestContext
   if (!syncedQueries.has(queryHash)) {
@@ -90,14 +140,25 @@ async function sendOperation(syncedQueries, schemaHash, profile, requestContext,
   }
 }
 
+/**
+ * @param {bigint} startTime
+ */
 function getDuration(startTime) {
   const endTime = process.hrtime.bigint()
   return Number((endTime - startTime) / 1000n)
 }
 
+/**
+ * @param {Resolver} resolver
+ */
 function pathAsString(resolver) {
   return resolver.path.filter((item) => typeof item === 'string').join('.')
 }
+
+/**
+ * @param {*} options
+ * @returns {import('@apollo/server').ApolloServerPlugin}
+ */
 
 function LogqlApolloPlugin(options = Object.create(null)) {
   // Do nothing when plugin is disabled
@@ -108,11 +169,15 @@ function LogqlApolloPlugin(options = Object.create(null)) {
   const config = getConfig(options)
   const syncedQueries = new Set()
 
+  /** @type {string} */
   let schemaHash
   let report
   let reportTimer
   let reportEntriesCount = 0
 
+  /**
+   * @param {Logger} logger
+   */
   function sendReportAndStopTimer(logger) {
     if (reportTimer) {
       clearInterval(reportTimer)
@@ -125,6 +190,9 @@ function LogqlApolloPlugin(options = Object.create(null)) {
     }
   }
 
+  /**
+   * @param {Logger} logger
+   */
   function sendReportAndResetTimer(logger) {
     sendReportAndStopTimer(logger)
     report = { schemaHash, operations: Object.create(null) }
@@ -139,7 +207,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
   }
 
   return {
-    serverWillStart({ logger }) {
+    async serverWillStart({ logger }) {
       return {
         schemaDidLoadOrUpdate({ apiSchema, coreSupergraphSdl }) {
           const schema = coreSupergraphSdl ? coreSupergraphSdl : printSchema(apiSchema)
@@ -147,20 +215,24 @@ function LogqlApolloPlugin(options = Object.create(null)) {
           sendReportAndResetTimer(logger)
           sendSchema(schema, schemaHash, config, logger)
         },
-        serverWillStop() {
+        async serverWillStop() {
           sendReportAndStopTimer(logger)
         },
       }
     },
 
-    requestDidStart({ logger }) {
+    async requestDidStart({ logger }) {
       // See https://stackoverflow.com/questions/18031839/how-to-use-process-hrtime-to-get-execution-time-of-async-function
       const requestStartTime = process.hrtime.bigint()
+      /** @type {Profile} */
       const profile = {
         receivedAt: new Date().toISOString(),
         resolvers: [],
       }
 
+      /**
+       * @param {RequestContext} requestContext
+       */
       function requestWillBeSent(requestContext) {
         /* istanbul ignore if */
         if (!report) {
@@ -182,7 +254,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
           operation.errors += hasError ? 1 : 0
           operation.duration += Math.round((duration - operation.duration) / operation.count)
 
-          const clientName = request.http.headers.get('apollographql-client-name')
+          const clientName = request.http?.headers.get('apollographql-client-name')
           if (clientName) {
             if (!(clientName in operation.clients)) {
               operation.clients[`${clientName}`] = { count: 0, duration: 0, errors: 0 }
@@ -195,7 +267,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
 
           for (const resolver of profile.resolvers) {
             const key = pathAsString(resolver)
-            const duration = resolver.end - resolver.start
+            const duration = (resolver.end || getDuration(requestStartTime)) - resolver.start
             if (!(key in operation.resolvers)) {
               operation.resolvers[`${key}`] = { count: 0, duration: 0, errors: 0 }
               reportEntriesCount++
@@ -214,22 +286,22 @@ function LogqlApolloPlugin(options = Object.create(null)) {
       }
 
       return {
-        parsingDidStart() {
+        async parsingDidStart() {
           profile.parsingStart = getDuration(requestStartTime)
-          return () => {
+          return async () => {
             profile.parsingEnd = getDuration(requestStartTime)
           }
         },
-        validationDidStart() {
+        async validationDidStart() {
           profile.validationStart = getDuration(requestStartTime)
-          return () => {
+          return async () => {
             profile.validationEnd = getDuration(requestStartTime)
           }
         },
-        executionDidStart() {
+        async executionDidStart() {
           profile.executionStart = getDuration(requestStartTime)
           return {
-            executionDidEnd() {
+            async executionDidEnd() {
               profile.executionEnd = getDuration(requestStartTime)
             },
             willResolveField({ info }) {
@@ -246,7 +318,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
             },
           }
         },
-        willSendResponse(requestContext) {
+        async willSendResponse(requestContext) {
           if (requestContext.errors) {
             sendError(requestContext.errors, schemaHash, profile, requestContext, config, logger)
           } else {

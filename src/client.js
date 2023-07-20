@@ -1,3 +1,4 @@
+// @ts-check
 const { promisify } = require('util')
 const { gzip } = require('zlib')
 const { randomUUID } = require('crypto')
@@ -9,6 +10,14 @@ const compress = promisify(gzip)
 
 const userAgent = `logql-apollo-plugin; node ${process.version}; ${os.platform()} ${os.release()}`
 
+/**
+ * @typedef {{contentType: string; body: string}} Data
+ */
+
+/**
+ * @param {Record<string, unknown>} input
+ * @returns {Data}
+ */
 function json(input) {
   return {
     contentType: 'application/json',
@@ -16,6 +25,10 @@ function json(input) {
   }
 }
 
+/**
+ * @param {string} input
+ * @returns {Data}
+ */
 function text(input) {
   return {
     contentType: 'text/plain',
@@ -23,6 +36,12 @@ function text(input) {
   }
 }
 
+/**
+ * @param {string} path
+ * @param {Data} data
+ * @param {import('./config').Config} config
+ * @param {*} logger
+ */
 async function sendWithRetry(path, data, config, logger) {
   const { endpoint, projectId, apiKey, timeout, environment } = config
   const url = `${endpoint}/${projectId}/${path}`
@@ -37,6 +56,7 @@ async function sendWithRetry(path, data, config, logger) {
         const abortTimeout = setTimeout(() => controller.abort(), timeout)
 
         try {
+          // @ts-ignore
           const res = await fetch(url, {
             method: 'POST',
             headers: {

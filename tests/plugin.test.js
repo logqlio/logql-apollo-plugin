@@ -131,8 +131,10 @@ describe('Config Validation', () => {
     expect(initPlugin(config)).not.toThrow()
   })
 
-  it('do not run validation of option when disable is truthy', () => {
-    expect(initPlugin({ disable: true })).not.toThrow()
+  it('load config from env', () => {
+    process.env.LOGQL_API_KEY = 'logql:FAKE_API_KEY'
+    const config = { projectId: randomUUID() }
+    expect(initPlugin(config)).not.toThrow()
   })
 })
 

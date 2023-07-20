@@ -136,6 +136,10 @@ describe('Config Validation', () => {
     const config = { projectId: randomUUID() }
     expect(initPlugin(config)).not.toThrow()
   })
+
+  it('fail when passed a non-object', () => {
+    expect(initPlugin('banana')).toThrow('LogQLPluginInitError: Invalid options: Expected an object, got string')
+  })
 })
 
 describe('Schema reporting with Apollo Federation', () => {

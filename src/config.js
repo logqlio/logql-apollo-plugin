@@ -24,7 +24,7 @@ const ConfigSchema = z.object({
  */
 function getConfig(options) {
   if (typeof options !== 'object') {
-    throw Error(`LogQLPluginInitError: expected an object in option, got ${typeof options}`)
+    throw Error(`LogQLPluginInitError: Invalid options: Expected an object, got ${typeof options}`)
   }
   try {
     const env = cleanEnv(

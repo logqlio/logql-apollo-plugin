@@ -156,16 +156,11 @@ function pathAsString(resolver) {
 }
 
 /**
- * @param {*} options
+ * @param {Partial<Config>} options
  * @returns {import('@apollo/server').ApolloServerPlugin}
  */
 
 function LogqlApolloPlugin(options = Object.create(null)) {
-  // Do nothing when plugin is disabled
-  if (options.disable) {
-    return {}
-  }
-
   const config = getConfig(options)
   const syncedQueries = new Set()
 

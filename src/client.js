@@ -43,8 +43,8 @@ function text(input) {
  * @param {*} logger
  */
 async function sendWithRetry(path, data, config, logger) {
-  const { endpoint, projectId, apiKey, timeout, environment } = config
-  const url = `${endpoint}/${projectId}/${path}`
+  const { endpoint, apiKey, timeout, environment } = config
+  const url = `${endpoint}/default/${path}`
   const requestId = randomUUID()
 
   try {

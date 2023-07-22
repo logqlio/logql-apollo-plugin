@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-non-literal-fs-filename */
 process.env.APOLLO_KEY = 'service:fake-id:123456789ABC-fakefake1'
 process.env.APOLLO_GRAPH_ID = 'fake-id'
 process.env.APOLLO_GRAPH_VARIANT = 'fake-variant'
@@ -35,7 +36,6 @@ function loadSchema(path) {
 function getConfiguredPlugin(config) {
   return LogqlApolloPlugin({
     apiKey: 'logql:FAKE_API_KEY',
-    projectId: '00000000-0000-4000-0000-000000000000',
     sendVariables: true,
     sendHeaders: true,
     reportIntervalMs: 500,
@@ -72,8 +72,8 @@ function decompress(payload) {
   return gunzipSync(buffer).toString('utf-8')
 }
 
-function logqlMock(projectId) {
-  return nock(`https://ingress.logql.io/${projectId}`, {
+function logqlMock() {
+  return nock(`https://ingress.logql.io/default`, {
     reqheaders: {
       'user-agent': /logql-apollo-plugin; .*; .*/,
       'content-encoding': 'gzip',
@@ -104,37 +104,24 @@ describe('Config Validation', () => {
 
   it('fail when given no config', () => {
     expect(initPlugin()).toThrow(
-      'LogQLPluginInitError: Failed to initialize logql plugin due to invalid options: Required at "apiKey"; Required at "projectId"'
-    )
-  })
-
-  it('fail when given config is null', () => {
-    expect(initPlugin()).toThrow(
-      'LogQLPluginInitError: Failed to initialize logql plugin due to invalid options: Required at "apiKey"; Required at "projectId"'
-    )
-  })
-
-  it('fail when apiKey is missing', () => {
-    expect(initPlugin({ projectId: randomUUID() })).toThrow(
       'LogQLPluginInitError: Failed to initialize logql plugin due to invalid options: Required at "apiKey"'
     )
   })
 
-  it('fail when projectId is missing', () => {
-    expect(initPlugin({ apiKey: 'logql:FAKE' })).toThrow(
-      'LogQLPluginInitError: Failed to initialize logql plugin due to invalid options: Required at "projectId"'
+  it('fail when given config is empty', () => {
+    expect(initPlugin({})).toThrow(
+      'LogQLPluginInitError: Failed to initialize logql plugin due to invalid options: Required at "apiKey"'
     )
   })
 
   it('work with valid minimal config', () => {
-    const config = { apiKey: 'logql:FAKE_API_KEY', projectId: randomUUID() }
+    const config = { apiKey: 'logql:FAKE_API_KEY' }
     expect(initPlugin(config)).not.toThrow()
   })
 
   it('load config from env', () => {
     process.env.LOGQL_API_KEY = 'logql:FAKE_API_KEY'
-    const config = { projectId: randomUUID() }
-    expect(initPlugin(config)).not.toThrow()
+    expect(initPlugin({})).not.toThrow()
   })
 
   it('fail when passed a non-object', () => {
@@ -170,12 +157,11 @@ describe('Schema reporting with Apollo Federation', () => {
   })
 
   it('Send federated schema to schema registry', async () => {
-    const projectId = randomUUID()
-    const schemaRegistry = logqlMock(projectId)
+    const schemaRegistry = logqlMock()
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
       .reply(204)
 
-    graphqlServer = getFederatedServer({ projectId })
+    graphqlServer = getFederatedServer()
     await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
     // Leave time to plugin to send the schema
     await waitFor(() => schemaRegistry.pendingMocks().length === 0, 20, 1000)
@@ -183,37 +169,34 @@ describe('Schema reporting with Apollo Federation', () => {
   })
 
   it('Retry sending the schema after a timeout', async () => {
-    const projectId = randomUUID()
-    const schemaRegistry = logqlMock(projectId)
+    const schemaRegistry = logqlMock()
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
       .delayConnection(500)
       .reply(204)
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
       .reply(204)
 
-    graphqlServer = getFederatedServer({ projectId, timeout: 100 })
+    graphqlServer = getFederatedServer({ timeout: 100 })
     await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
     await waitFor(() => schemaRegistry.pendingMocks().length === 0) // Letting some time for the retry to occur
     expect(schemaRegistry.pendingMocks()).toHaveLength(0)
   })
 
   it('Retry sending the schema after a 500 error', async () => {
-    const projectId = randomUUID()
-    const schemaRegistry = logqlMock(projectId)
+    const schemaRegistry = logqlMock()
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
       .reply(500)
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
       .reply(204)
 
-    graphqlServer = getFederatedServer({ projectId })
+    graphqlServer = getFederatedServer()
     await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
     await waitFor(() => schemaRegistry.pendingMocks().length === 0) // Letting some time for the retry to occur
     expect(schemaRegistry.pendingMocks()).toHaveLength(0)
   })
 
   it('Retry sending the schema after 3 times after 5xx errors', async () => {
-    const projectId = randomUUID()
-    const schemaRegistry = logqlMock(projectId)
+    const schemaRegistry = logqlMock()
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
       .reply(500)
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
@@ -223,7 +206,7 @@ describe('Schema reporting with Apollo Federation', () => {
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
       .reply(501)
 
-    graphqlServer = getFederatedServer({ projectId, reportIntervalMs: 1 })
+    graphqlServer = getFederatedServer({ reportIntervalMs: 1 })
     await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
     await waitFor(() => schemaRegistry.pendingMocks().length === 0)
     expect(schemaRegistry.pendingMocks()).toHaveLength(0)
@@ -244,12 +227,11 @@ describe('Schema reporting with Apollo Server', () => {
   })
 
   it('Send schema to schema registry', async () => {
-    const projectId = randomUUID()
-    const schemaRegistry = logqlMock(projectId)
+    const schemaRegistry = logqlMock()
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
       .reply(204)
 
-    graphqlServer = getRegularServer(schema, resolvers, { projectId })
+    graphqlServer = getRegularServer(schema, resolvers)
     await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
     await waitFor(() => schemaRegistry.pendingMocks().length === 0, 20, 1000)
     expect(schemaRegistry.pendingMocks()).toHaveLength(0)
@@ -275,11 +257,10 @@ describe('Request handling with Apollo Federation', () => {
           },
         },
       })
-    const projectId = randomUUID()
-    logql = logqlMock(projectId)
+    logql = logqlMock()
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
       .reply(204)
-    graphqlServer = getFederatedServer({ projectId })
+    graphqlServer = getFederatedServer()
     const { url } = await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
     graphqlServerUrl = url
     //nock.recorder.rec()
@@ -1255,11 +1236,10 @@ describe('Request handling with Apollo Server', () => {
           },
         },
       })
-    const projectId = randomUUID()
-    logql = logqlMock(projectId)
+    logql = logqlMock()
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
       .reply(204)
-    graphqlServer = getRegularServer(schema, resolvers, { projectId })
+    graphqlServer = getRegularServer(schema, resolvers)
     const { url } = await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
     graphqlServerUrl = url
     //nock.recorder.rec()

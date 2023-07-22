@@ -26,9 +26,14 @@ const apolloServer = new ApolloServer({
   resolvers,
   plugins: [
     Logql({
-      apiKey: <Your-LogQL-API-Key>,
-      projectId: <Your-LogQL-ProjectId>,
+      apiKey: 'logql:your-api-key,
     }),
   ],
 })
+```
+
+Or using environment variables:
+
+```sh
+LOGQL_API_KEY=logql:your-api-key node .
 ```

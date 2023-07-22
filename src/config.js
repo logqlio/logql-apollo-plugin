@@ -5,7 +5,6 @@ const { fromZodError } = require('zod-validation-error')
 
 const ConfigSchema = z.object({
   apiKey: z.string().startsWith('logql:'),
-  projectId: z.string(),
   environment: z.string().trim().toLowerCase().max(128),
   timeout: z.number().min(0),
   sendVariables: z.boolean(),
@@ -30,7 +29,6 @@ function getConfig(options) {
     const env = cleanEnv(
       {
         apiKey: process.env.LOGQL_API_KEY,
-        projectId: process.env.LOGQL_PROJECT_ID,
         environment: process.env.LOGQL_ENVIRONMENT,
         timeout: process.env.LOGQL_TIMEOUT,
         sendVariables: process.env.LOGQL_SEND_VARIABLES,
@@ -41,7 +39,6 @@ function getConfig(options) {
       },
       {
         apiKey: str({ default: undefined }),
-        projectId: str({ default: undefined }),
         environment: str({ default: '' }),
         timeout: num({ default: 15000 }),
         sendVariables: bool({ default: false }),

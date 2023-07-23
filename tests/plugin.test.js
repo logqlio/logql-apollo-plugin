@@ -1530,9 +1530,7 @@ describe('Request handling with Apollo Server', () => {
           extensions: {
             code: 'BAD_USER_INPUT',
           },
-          stackTrace: expect.stringMatching(
-            'GraphQLError: Variable "\\$value" got invalid value "not a number"; Int cannot represent non-integer value: "not a number"'
-          ),
+          stackTrace: expect.stringMatching('GraphQLError: Int cannot represent non-integer value: "not a number"'),
         },
       ],
     })

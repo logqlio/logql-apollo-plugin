@@ -1,7 +1,7 @@
 // @ts-check
 const { createHash } = require('crypto')
 const { printSchema, responsePathAsArray } = require('graphql')
-const LRUCache = require('lru-cache')
+const { LRUCache } = require('lru-cache')
 
 const { getConfig } = require('./config')
 const { json, text, sendWithRetry } = require('./client')
@@ -110,7 +110,7 @@ async function sendReport(reportMap, config, logger) {
 }
 
 /**
- * @param {*} syncedQueries
+ * @param {LRUCache<string, string>} syncedQueries
  * @param {string} schemaHash
  * @param {*} profile
  * @param {RequestContext} requestContext
@@ -120,7 +120,7 @@ async function sendReport(reportMap, config, logger) {
 async function sendOperation(syncedQueries, schemaHash, profile, requestContext, config, logger) {
   const { source, queryHash, operationName, operation } = requestContext
   if (!syncedQueries.has(queryHash)) {
-    syncedQueries.add(queryHash)
+    syncedQueries.set(queryHash, queryHash)
     const data = {
       schemaHash,
       operations: [
@@ -162,7 +162,9 @@ function pathAsString(resolver) {
 
 function LogqlApolloPlugin(options = Object.create(null)) {
   const config = getConfig(options)
-  const syncedQueries = new Set()
+
+  /** @type {LRUCache<string, string>} */
+  const syncedQueries = new LRUCache({ max: config.cacheSize })
 
   /** @type {string} */
   let schemaHash

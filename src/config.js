@@ -11,6 +11,7 @@ const ConfigSchema = z.object({
   sendHeaders: z.boolean(),
   reportIntervalMs: z.number().min(0),
   reportEntriesThreshold: z.number().min(1),
+  cacheSize: z.number().min(1),
   endpoint: z.string().url(),
 })
 
@@ -35,6 +36,7 @@ function getConfig(options) {
         sendHeaders: process.env.LOGQL_SEND_HEADERS,
         reportIntervalMs: process.env.LOGQL_REPORT_INTERVAL_MS,
         reportEntriesThreshold: process.env.LOGQL_REPORT_ENTRIES_THRESHOLD,
+        cacheSize: process.env.LOGQL_CACHE_SIZE,
         endpoint: process.env.LOGQL_ENDPOINT,
       },
       {
@@ -45,6 +47,7 @@ function getConfig(options) {
         sendHeaders: bool({ default: false }),
         reportIntervalMs: num({ default: 10000 }),
         reportEntriesThreshold: num({ default: 1024 }),
+        cacheSize: num({ default: 16384 }),
         endpoint: url({ default: 'https://ingress.logql.io' }),
       },
       {

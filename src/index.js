@@ -26,6 +26,7 @@ const { json, text, sendWithRetry } = require('./client')
  * @property {number} [validationEnd]
  * @property {number} [executionStart]
  * @property {number} [executionEnd]
+ * @property {number} [requestEnd]
  */
 
 /**
@@ -231,6 +232,9 @@ function LogqlApolloPlugin(options = Object.create(null)) {
        * @param {RequestContext} requestContext
        */
       function requestWillBeSent(requestContext) {
+        const duration = getDuration(requestStartTime)
+        profile.requestEnd = duration
+
         /* istanbul ignore if */
         if (!report) {
           // Added in case a request is processed after the server stopped - should never happen
@@ -240,7 +244,6 @@ function LogqlApolloPlugin(options = Object.create(null)) {
         const { queryHash, request } = requestContext
         /* istanbul ignore else */
         if (queryHash) {
-          const duration = getDuration(requestStartTime)
           const hasError = !!requestContext.errors
           if (!(queryHash in report.operations)) {
             report.operations[`${queryHash}`] = { count: 0, duration: 0, errors: 0, resolvers: {}, clients: {} }
@@ -316,12 +319,12 @@ function LogqlApolloPlugin(options = Object.create(null)) {
           }
         },
         async willSendResponse(requestContext) {
+          requestWillBeSent(requestContext)
           if (requestContext.errors) {
             sendError(requestContext.errors, schemaHash, profile, requestContext, config, logger)
           } else {
             sendOperation(syncedQueries, schemaHash, profile, requestContext, config, logger)
           }
-          requestWillBeSent(requestContext)
         },
       }
     },

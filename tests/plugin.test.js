@@ -325,6 +325,7 @@ describe('Request handling with Apollo Federation', () => {
         parsingStart: expect.any(Number),
         receivedAt: expect.any(String),
         resolvers: [],
+        requestEnd: expect.any(Number),
       },
       metrics: {
         startHrTime: [expect.any(Number), expect.any(Number)],
@@ -419,6 +420,7 @@ describe('Request handling with Apollo Federation', () => {
         resolvers: [],
         validationEnd: expect.any(Number),
         validationStart: expect.any(Number),
+        requestEnd: expect.any(Number),
       },
       metrics: {
         startHrTime: [expect.any(Number), expect.any(Number)],
@@ -532,6 +534,7 @@ describe('Request handling with Apollo Federation', () => {
         resolvers: [],
         validationEnd: expect.any(Number),
         validationStart: expect.any(Number),
+        requestEnd: expect.any(Number),
       },
       metrics: {
         startHrTime: [expect.any(Number), expect.any(Number)],
@@ -697,6 +700,7 @@ describe('Request handling with Apollo Federation', () => {
           resolvers: [],
           validationEnd: expect.any(Number),
           validationStart: expect.any(Number),
+          requestEnd: expect.any(Number),
         },
         metrics: {
           startHrTime: [expect.any(Number), expect.any(Number)],
@@ -1304,6 +1308,7 @@ describe('Request handling with Apollo Server', () => {
         parsingStart: expect.any(Number),
         receivedAt: expect.any(String),
         resolvers: [],
+        requestEnd: expect.any(Number),
       },
       metrics: {
         startHrTime: [expect.any(Number), expect.any(Number)],
@@ -1409,6 +1414,7 @@ describe('Request handling with Apollo Server', () => {
         ],
         validationEnd: expect.any(Number),
         validationStart: expect.any(Number),
+        requestEnd: expect.any(Number),
       },
       metrics: {
         captureTraces: true,
@@ -1510,6 +1516,7 @@ describe('Request handling with Apollo Server', () => {
         resolvers: [],
         validationEnd: expect.any(Number),
         validationStart: expect.any(Number),
+        requestEnd: expect.any(Number),
       },
       metrics: {
         captureTraces: true,
@@ -1607,6 +1614,7 @@ describe('Request handling with Apollo Server', () => {
         resolvers: [],
         validationEnd: expect.any(Number),
         validationStart: expect.any(Number),
+        requestEnd: expect.any(Number),
       },
       metrics: {
         startHrTime: [expect.any(Number), expect.any(Number)],
@@ -1848,6 +1856,7 @@ describe('Request handling with Apollo Server', () => {
         parsingEnd: expect.any(Number),
         parsingStart: expect.any(Number),
         receivedAt: expect.any(String),
+        requestEnd: expect.any(Number),
         resolvers: [
           {
             end: expect.any(Number),

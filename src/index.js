@@ -113,7 +113,7 @@ async function sendReport(reportMap, config, logger) {
 /**
  * @param {LRUCache<string, string>} syncedQueries
  * @param {string} schemaHash
- * @param {*} profile
+ * @param {Profile} profile
  * @param {RequestContext} requestContext
  * @param {Config} config
  * @param {Logger} logger
@@ -122,6 +122,11 @@ async function sendOperation(syncedQueries, schemaHash, profile, requestContext,
   const { source, queryHash, operationName, operation } = requestContext
   if (!syncedQueries.has(queryHash)) {
     syncedQueries.set(queryHash, queryHash)
+    /** @type {Set<string>} */
+    const pathsSet = new Set()
+    for (const resolver of profile.resolvers) {
+      pathsSet.add(pathAsString(resolver))
+    }
     const data = {
       schemaHash,
       operations: [
@@ -130,7 +135,7 @@ async function sendOperation(syncedQueries, schemaHash, profile, requestContext,
           source,
           operationName,
           operationType: operation && operation.operation,
-          paths: profile.resolvers.map(pathAsString),
+          paths: [...pathsSet],
         },
       ],
     }

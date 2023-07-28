@@ -996,7 +996,7 @@ describe('Request handling with Apollo Federation', () => {
     })
   })
 
-  it('do send an operation body twice if it failed first time', async () => {
+  it.each([400, 500])('do send an operation body twice if it failed with status %p', async (status) => {
     let report
     let operation
 
@@ -1029,7 +1029,7 @@ describe('Request handling with Apollo Federation', () => {
         return true
       })
       .times(4) // Fail 4 times (initial + 3 retry) so that the operation is sent with the next request
-      .reply(500)
+      .reply(status)
 
     const query = gql`
       query AllPandas {
@@ -1105,7 +1105,7 @@ describe('Request handling with Apollo Federation', () => {
     })
   })
 
-  it('do not send an operation body twice if it failed with 401', async () => {
+  it.each([401, 403, 413])('do not send an operation body twice if it failed with status %p', async (status) => {
     let report
     let operation
 
@@ -1136,7 +1136,7 @@ describe('Request handling with Apollo Federation', () => {
         operation = JSON.parse(decompress(res))
         return true
       })
-      .reply(401)
+      .reply(status)
 
     const query = gql`
       query AllPandas {
@@ -1780,8 +1780,6 @@ describe('Request handling with Apollo Server', () => {
             'user.group.id',
             'user.group.name',
             'user.group.users',
-            'user.group.users.id',
-            'user.group.users.name',
             'user.group.users.id',
             'user.group.users.name',
           ],

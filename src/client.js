@@ -73,12 +73,21 @@ async function sendWithRetry(path, data, config, logger) {
           })
 
           if (res.status === 401 || res.status === 403) {
-            bail(Error(`Failed to authenticate with status ${res.status}`))
+            bail(Error(`Failed to authenticate with status ${res.status} - path: ${path}`))
             return res
           }
 
+          if (res.status === 413) {
+            bail(Error(`Content too large: ${compressed.length} (${data.body.length}) uncompressed - path: ${path}`))
+            return res
+          }
+
+          if (res.status >= 400 && res.status < 500) {
+            throw Error(`Client error with status ${res.status} - path: ${path}`)
+          }
+
           if (res.status >= 500 && res.status < 600) {
-            throw Error(`Server error with status ${res.status}`)
+            throw Error(`Server error with status ${res.status} - path: ${path}`)
           }
 
           return res

@@ -1782,8 +1782,6 @@ describe('Request handling with Apollo Server', () => {
             'user.group.users',
             'user.group.users.id',
             'user.group.users.name',
-            'user.group.users.id',
-            'user.group.users.name',
           ],
         },
       ],

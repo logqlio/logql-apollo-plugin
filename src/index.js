@@ -169,6 +169,11 @@ function pathAsString(resolver) {
 function LogqlApolloPlugin(options = Object.create(null)) {
   const config = getConfig(options)
 
+  // Disable in tests by default
+  if (process.env.NODE_ENV === 'test' && !config.runInTests) {
+    return {}
+  }
+
   /** @type {LRUCache<string, string>} */
   const syncedQueries = new LRUCache({ max: config.cacheSize })
 

@@ -117,14 +117,14 @@ describe('Config Validation', () => {
     console.error.mockClear()
   })
 
-  it('fail when given no config', () => {
+  it('log an error when no config is given', () => {
     expect(initPlugin()).toEqual({})
-    expect(console.error).toHaveBeenCalledWith('[logql-plugin][Error][init] Invalid options: Required at "apiKey"')
+    expect(console.error).toHaveBeenCalledWith('[logql-plugin][ERROR][init] Invalid options: Required at "apiKey"')
   })
 
-  it('fail when given config is empty', () => {
+  it('log an error when config is empty', () => {
     expect(initPlugin({})).toEqual({})
-    expect(console.error).toHaveBeenCalledWith('[logql-plugin][Error][init] Invalid options: Required at "apiKey"')
+    expect(console.error).toHaveBeenCalledWith('[logql-plugin][ERROR][init] Invalid options: Required at "apiKey"')
   })
 
   it('work with valid minimal config', () => {
@@ -137,10 +137,18 @@ describe('Config Validation', () => {
     expect(initPlugin({})).not.toEqual({})
   })
 
-  it('fail when passed a non-object', () => {
+  it('log an error when passed a non-object', () => {
     expect(initPlugin('banana')).toEqual({})
     expect(console.error).toHaveBeenCalledWith(
-      '[logql-plugin][Error][init] Invalid options type: Expected an object, got string'
+      '[logql-plugin][ERROR][init] Invalid options type: Expected an object, got string'
+    )
+  })
+
+  it('log a warning when env variables are not matching types', () => {
+    process.env.LOGQL_TIMEOUT = 'NOT_A_NUMBER!'
+    expect(initPlugin({ apiKey: 'logql:FAKE_API_KEY' })).not.toEqual({})
+    expect(console.error).toHaveBeenCalledWith(
+      '[logql-plugin][WARNING][init] Invalid values supplied as environment variables, ignoring: timeout: Invalid number input: "NOT_A_NUMBER!"'
     )
   })
 

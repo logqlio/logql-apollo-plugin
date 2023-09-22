@@ -5,15 +5,15 @@ const { fromZodError } = require('zod-validation-error')
 
 const ConfigSchema = z.object({
   apiKey: z.string().startsWith('logql:'),
-  environment: z.string().trim().toLowerCase().max(128),
-  timeout: z.number().min(0),
-  sendVariables: z.boolean(),
-  sendHeaders: z.boolean(),
-  runInTests: z.boolean(),
-  reportIntervalMs: z.number().min(0),
-  reportEntriesThreshold: z.number().min(1),
-  cacheSize: z.number().min(1),
-  endpoint: z.string().url(),
+  environment: z.string().trim().toLowerCase().max(128).default(''),
+  timeout: z.number().min(0).default(15000),
+  sendVariables: z.boolean().default(false),
+  sendHeaders: z.boolean().default(false),
+  runInTests: z.boolean().default(false),
+  reportIntervalMs: z.number().min(0).default(10000),
+  reportEntriesThreshold: z.number().min(1).default(1024),
+  cacheSize: z.number().min(1).default(16384),
+  endpoint: z.string().url().default('https://ingress.logql.io'),
 })
 
 /**
@@ -21,14 +21,26 @@ const ConfigSchema = z.object({
  */
 
 /**
- * @param {unknown} options
+ * @param {string} msg
  */
-function getConfig(options) {
-  if (typeof options !== 'object') {
-    throw Error(`LogQLPluginInitError: Invalid options: Expected an object, got ${typeof options}`)
+function logInitError(msg) {
+  if (process.env.NODE_ENV !== 'test') {
+    console.error(`[logql-plugin][ERROR][init] ${msg}`)
   }
+}
+
+/**
+ * @param {string} msg
+ */
+function logInitWarning(msg) {
+  if (process.env.NODE_ENV !== 'test') {
+    console.error(`[logql-plugin][WARNING][init] ${msg}`)
+  }
+}
+
+function loadEnv() {
   try {
-    const env = cleanEnv(
+    return cleanEnv(
       {
         apiKey: process.env.LOGQL_API_KEY,
         environment: process.env.LOGQL_ENVIRONMENT,
@@ -43,32 +55,57 @@ function getConfig(options) {
       },
       {
         apiKey: str({ default: undefined }),
-        environment: str({ default: '' }),
-        timeout: num({ default: 15000 }),
-        sendVariables: bool({ default: false }),
-        sendHeaders: bool({ default: false }),
-        runInTests: bool({ default: false }),
-        reportIntervalMs: num({ default: 10000 }),
-        reportEntriesThreshold: num({ default: 1024 }),
-        cacheSize: num({ default: 16384 }),
-        endpoint: url({ default: 'https://ingress.logql.io' }),
+        environment: str({ default: undefined }),
+        timeout: num({ default: undefined }),
+        sendVariables: bool({ default: undefined }),
+        sendHeaders: bool({ default: undefined }),
+        runInTests: bool({ default: undefined }),
+        reportIntervalMs: num({ default: undefined }),
+        reportEntriesThreshold: num({ default: undefined }),
+        cacheSize: num({ default: undefined }),
+        endpoint: url({ default: undefined }),
       },
       {
         // Mute the errors
-        reporter: () => {},
+        reporter: ({ errors }) => {
+          const errorKeys = Object.keys(errors)
+          if (errorKeys.length) {
+            logInitWarning(
+              `Invalid values supplied as environment variables, ignoring: ${errorKeys
+                .map((envVar) => `${envVar}: ${errors[`${envVar}`].message}`)
+                .join(';')}`
+            )
+          }
+        },
       }
     )
-    return ConfigSchema.parse({ ...env, ...options })
-  } catch (err) {
-    const validationError = fromZodError(err, {
-      prefix: 'Failed to initialize logql plugin due to invalid options',
-    })
-    /* istanbul ignore if */
-    if (process.env.NODE_ENV !== 'test') {
-      console.error(`logql-plugin: ${validationError.message}`)
-    }
-    throw Error(`LogQLPluginInitError: ${validationError.message}`)
+  } catch (err) /* istanbul ignore next */ {
+    logInitWarning(`Failed to load config from environment variables: ${err.message}`)
+    return {}
   }
+}
+
+/**
+ * @param {unknown} options
+ */
+function getConfig(options) {
+  if (typeof options !== 'object') {
+    logInitError(`Invalid options type: Expected an object, got ${typeof options}`)
+    return
+  }
+
+  const env = loadEnv()
+
+  const maybeConfig = ConfigSchema.safeParse({ ...env, ...options })
+  if (maybeConfig.success) {
+    return maybeConfig.data
+  }
+
+  const validationError = fromZodError(maybeConfig.error, {
+    prefix: 'Invalid options',
+  })
+
+  logInitError(validationError.message)
 }
 
 module.exports = { getConfig }

@@ -21,14 +21,17 @@ const ConfigSchema = z.object({
  */
 
 /**
- * @param {unknown} options
+ * @param {string} msg
  */
-function getConfig(options) {
-  if (typeof options !== 'object') {
-    throw Error(`LogQLPluginInitError: Invalid options: Expected an object, got ${typeof options}`)
+function logInitError(msg) {
+  if (process.env.NODE_ENV !== 'test') {
+    console.error(`[logql-plugin][Error][init] ${msg}`)
   }
+}
+
+function loadEnv() {
   try {
-    const env = cleanEnv(
+    return cleanEnv(
       {
         apiKey: process.env.LOGQL_API_KEY,
         environment: process.env.LOGQL_ENVIRONMENT,
@@ -58,17 +61,35 @@ function getConfig(options) {
         reporter: () => {},
       }
     )
-    return ConfigSchema.parse({ ...env, ...options })
   } catch (err) {
-    const validationError = fromZodError(err, {
-      prefix: 'Failed to initialize logql plugin due to invalid options',
-    })
-    /* istanbul ignore if */
-    if (process.env.NODE_ENV !== 'test') {
-      console.error(`logql-plugin: ${validationError.message}`)
-    }
-    throw Error(`LogQLPluginInitError: ${validationError.message}`)
+    logInitError(`Invalid environment variables: ${err.message}`)
   }
+}
+
+/**
+ * @param {unknown} options
+ */
+function getConfig(options) {
+  if (typeof options !== 'object') {
+    logInitError(`Invalid options type: Expected an object, got ${typeof options}`)
+    return
+  }
+
+  const env = loadEnv()
+  if (!env) {
+    return
+  }
+
+  const maybeConfig = ConfigSchema.safeParse({ ...env, ...options })
+  if (maybeConfig.success) {
+    return maybeConfig.data
+  }
+
+  const validationError = fromZodError(maybeConfig.error, {
+    prefix: 'Invalid options',
+  })
+
+  logInitError(validationError.message)
 }
 
 module.exports = { getConfig }

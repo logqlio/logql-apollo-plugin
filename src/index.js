@@ -167,7 +167,14 @@ function pathAsString(resolver) {
  */
 
 function LogqlApolloPlugin(options = Object.create(null)) {
-  const config = getConfig(options)
+  const maybeConfig = getConfig(options)
+
+  // Disable if config was not loaded
+  if (maybeConfig == null) {
+    return {}
+  }
+
+  const config = maybeConfig
 
   // Disable in tests by default
   if (process.env.NODE_ENV === 'test' && !config.runInTests) {

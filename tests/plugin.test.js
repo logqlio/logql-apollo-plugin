@@ -38,6 +38,7 @@ function getConfiguredPlugin(config) {
     apiKey: 'logql:FAKE_API_KEY',
     sendVariables: true,
     sendHeaders: true,
+    runInTests: true,
     reportIntervalMs: 500,
     ...config,
   })
@@ -126,6 +127,10 @@ describe('Config Validation', () => {
 
   it('fail when passed a non-object', () => {
     expect(initPlugin('banana')).toThrow('LogQLPluginInitError: Invalid options: Expected an object, got string')
+  })
+
+  it('does nothing in tests by default', () => {
+    expect(initPlugin({ runInTests: false })()).toEqual({})
   })
 })
 

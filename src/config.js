@@ -79,8 +79,9 @@ function loadEnv() {
         },
       }
     )
-  } catch (err) {
-    logInitError(`Failed to load config from environment variables: ${err.message}`)
+  } catch (err) /* istanbul ignore next */ {
+    logInitWarning(`Failed to load config from environment variables: ${err.message}`)
+    return {}
   }
 }
 
@@ -94,9 +95,6 @@ function getConfig(options) {
   }
 
   const env = loadEnv()
-  if (!env) {
-    return
-  }
 
   const maybeConfig = ConfigSchema.safeParse({ ...env, ...options })
   if (maybeConfig.success) {

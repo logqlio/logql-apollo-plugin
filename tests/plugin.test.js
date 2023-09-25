@@ -41,6 +41,7 @@ function getConfiguredPlugin(config) {
     runInTests: true,
     reportIntervalMs: 500,
     sampling: 0.01,
+    verbose: true,
     ...config,
   })
 }

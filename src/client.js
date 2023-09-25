@@ -98,13 +98,18 @@ async function sendWithRetry(path, data, config, logger) {
       {
         retries: 3,
         minTimeout: 0,
-        onRetry: (err) =>
-          logger.error(`logql-plugin: Retrying request url: ${url} - requestId: ${requestId} - error: ${err}`),
+        onRetry: (err) => {
+          if (config.verbose) {
+            logger.error(
+              `[logql-plugin][ERROR][client] Retrying request url: ${url} - requestId: ${requestId} - error: ${err}`
+            )
+          }
+        },
       }
     )
     return true
   } catch (err) {
-    logger.error(`logql-plugin: request failed ${url}: ${err}`)
+    logger.error(`[logql-plugin][ERROR][client] request failed ${url}: ${err}`)
     return false
   }
 }

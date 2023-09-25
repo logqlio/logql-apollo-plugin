@@ -196,6 +196,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
    * @param {*} err
    * @param {Logger} logger
    */
+  /* istanbul ignore next */
   function logReportingFailure(err, logger) {
     if (config.verbose) {
       logger.error(`[logql-plugin][ERROR][client] Failed to send metrics: ${err}`)

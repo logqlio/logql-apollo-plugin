@@ -1,6 +1,6 @@
 {
   "name": "@logql/apollo-plugin",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Logql plugin for Apollo Server",
   "keywords": [
     "apollo",

@@ -6,13 +6,14 @@ const { fromZodError } = require('zod-validation-error')
 const ConfigSchema = z.object({
   apiKey: z.string().startsWith('logql:'),
   environment: z.string().trim().toLowerCase().max(128).default(''),
-  timeout: z.number().min(0).default(15000),
+  timeout: z.number().min(0).default(2000),
   sendVariables: z.boolean().default(false),
   sendHeaders: z.boolean().default(false),
   runInTests: z.boolean().default(false),
   reportIntervalMs: z.number().min(0).default(10000),
   reportEntriesThreshold: z.number().min(1).default(1024),
   cacheSize: z.number().min(1).default(16384),
+  sampling: z.number().min(0).max(1).default(1.0),
   endpoint: z.string().url().default('https://ingress.logql.io'),
 })
 
@@ -51,6 +52,7 @@ function loadEnv() {
         reportIntervalMs: process.env.LOGQL_REPORT_INTERVAL_MS,
         reportEntriesThreshold: process.env.LOGQL_REPORT_ENTRIES_THRESHOLD,
         cacheSize: process.env.LOGQL_CACHE_SIZE,
+        sampling: process.env.LOGQL_SAMPLING,
         endpoint: process.env.LOGQL_ENDPOINT,
       },
       {
@@ -63,6 +65,7 @@ function loadEnv() {
         reportIntervalMs: num({ default: undefined }),
         reportEntriesThreshold: num({ default: undefined }),
         cacheSize: num({ default: undefined }),
+        sampling: num({ default: undefined }),
         endpoint: url({ default: undefined }),
       },
       {

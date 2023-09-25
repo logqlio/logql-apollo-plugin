@@ -193,6 +193,16 @@ function LogqlApolloPlugin(options = Object.create(null)) {
   let reportEntriesCount = 0
 
   /**
+   * @param {*} err
+   * @param {Logger} logger
+   */
+  function logReportingFailure(err, logger) {
+    if (config.verbose) {
+      logger.error(`[logql-plugin][ERROR][client] Failed to send metrics: ${err}`)
+    }
+  }
+
+  /**
    * @param {Logger} logger
    */
   function sendReportAndStopTimer(logger) {
@@ -201,7 +211,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
       reportTimer = null
     }
     if (report) {
-      sendReport(report, config, logger).catch((err) => logger.error(`logql-plugin: Failed to send metrics: ${err}`))
+      sendReport(report, config, logger).catch((err) => logReportingFailure(err, logger))
       report = null
       reportEntriesCount = 0
     }
@@ -216,7 +226,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
     reportTimer = setInterval(() => {
       /* istanbul ignore else */
       if (report) {
-        sendReport(report, config, logger).catch((err) => logger.error(`logql-plugin: Failed to send metrics: ${err}`))
+        sendReport(report, config, logger).catch((err) => logReportingFailure(err, logger))
         report = { schemaHash, operations: Object.create(null) }
         reportEntriesCount = 0
       }

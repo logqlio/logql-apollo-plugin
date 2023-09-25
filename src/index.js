@@ -73,12 +73,14 @@ async function sendError(errors, schemaHash, profile, requestContext, config, lo
     },
     profile,
     metrics,
-    errors: errors.map((err) => ({
-      ...err,
-      message: err.message,
-      stackTrace: err.stack,
-      path: err.path,
-    })),
+    errors:
+      errors &&
+      errors.map((err) => ({
+        ...err,
+        message: err.message,
+        stackTrace: err.stack,
+        path: err.path,
+      })),
   }
 
   return await sendWithRetry('errors', json(payload), config, logger)
@@ -337,7 +339,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
         },
         async willSendResponse(requestContext) {
           requestWillBeSent(requestContext)
-          if (requestContext.errors) {
+          if (requestContext.errors || Math.random() < config.sampling) {
             sendError(requestContext.errors, schemaHash, profile, requestContext, config, logger)
           } else {
             sendOperation(syncedQueries, schemaHash, profile, requestContext, config, logger)

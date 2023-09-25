@@ -40,6 +40,7 @@ function getConfiguredPlugin(config) {
     sendHeaders: true,
     runInTests: true,
     reportIntervalMs: 500,
+    sampling: 0.01,
     ...config,
   })
 }
@@ -275,6 +276,7 @@ describe('Request handling with Apollo Federation', () => {
   let logql
 
   beforeEach(async () => {
+    jest.spyOn(global.Math, 'random').mockReturnValue(0.2)
     nock(/uplink.api.apollographql.com/)
       .persist()
       .post('/')
@@ -297,6 +299,7 @@ describe('Request handling with Apollo Federation', () => {
   })
 
   afterEach(async () => {
+    jest.spyOn(global.Math, 'random').mockRestore()
     if (graphqlServer) {
       await graphqlServer.stop()
       graphqlServer = null
@@ -1258,6 +1261,7 @@ describe('Request handling with Apollo Server', () => {
   let logql
 
   beforeEach(async () => {
+    jest.spyOn(global.Math, 'random').mockReturnValue(0.2)
     nock(/uplink.api.apollographql.com/)
       .persist()
       .post('/')
@@ -1273,13 +1277,14 @@ describe('Request handling with Apollo Server', () => {
     logql = logqlMock()
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
       .reply(204)
-    graphqlServer = getRegularServer(schema, resolvers)
+    graphqlServer = getRegularServer(schema, resolvers, { sampling: 0.1 })
     const { url } = await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
     graphqlServerUrl = url
     //nock.recorder.rec()
   })
 
   afterEach(async () => {
+    jest.spyOn(global.Math, 'random').mockRestore()
     if (graphqlServer) {
       await graphqlServer.stop()
       graphqlServer = null
@@ -1287,6 +1292,100 @@ describe('Request handling with Apollo Server', () => {
     nock.abortPendingRequests()
     //nock.cleanAll()
     //nock.recorder.clear()
+  })
+
+  it('Send request when sampled and not error', async () => {
+    let payload, report
+
+    logql
+      .post('/errors', (res) => {
+        payload = JSON.parse(decompress(res))
+        return true
+      })
+      .reply(204)
+      .post('/metrics', (res) => {
+        report = JSON.parse(decompress(res))
+        return true
+      })
+      .reply(204)
+    const query = gql`
+      query Hello {
+        hello
+      }
+    `
+    jest.spyOn(global.Math, 'random').mockReturnValue(0.02)
+    const res = await request(graphqlServerUrl).post('').type('application/json').send({ query })
+
+    expect(res.status).toBe(200)
+    expect(res.body.errors).toBeFalsy()
+
+    await waitFor(() => payload && report)
+    expect(logql.pendingMocks()).toHaveLength(0)
+    expect(payload).toEqual({
+      schemaHash,
+      client: {},
+      request: {
+        method: 'POST',
+        search: '',
+        headers: {
+          host: expect.any(String),
+          'accept-encoding': 'gzip, deflate',
+          'content-type': 'application/json',
+          'content-length': expect.any(String),
+          connection: 'close',
+        },
+      },
+      operation: {
+        source: query,
+        queryHash: createHash('sha256').update(query).digest('hex'),
+        operationName: 'Hello',
+        operationType: 'query',
+      },
+      profile: {
+        parsingEnd: expect.any(Number),
+        parsingStart: expect.any(Number),
+        validationStart: expect.any(Number),
+        validationEnd: expect.any(Number),
+        executionStart: expect.any(Number),
+        executionEnd: expect.any(Number),
+        receivedAt: expect.any(String),
+        resolvers: [
+          {
+            path: ['hello'],
+            start: expect.any(Number),
+            end: expect.any(Number),
+            error: false,
+          },
+        ],
+        requestEnd: expect.any(Number),
+      },
+      metrics: {
+        startHrTime: [expect.any(Number), expect.any(Number)],
+        persistedQueryHit: false,
+        persistedQueryRegister: false,
+        captureTraces: true,
+      },
+    })
+    expect(report).toEqual({
+      schemaHash,
+      operations: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
+          count: 1,
+          duration: expect.any(Number),
+          errors: 0,
+          resolvers: [
+            {
+              path: 'hello',
+              count: 1,
+              errors: 0,
+              duration: expect.any(Number),
+            },
+          ],
+          clients: [],
+        },
+      ],
+    })
   })
 
   it('Send errors when query is malformed (GRAPHQL_PARSE_FAILED)', async () => {

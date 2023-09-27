@@ -14,8 +14,8 @@ const { json, text, sendWithRetry } = require('./client')
  * @typedef {Object} Resolver
  * @property {(string | number)[]} path
  * @property {number} start
- * @property {number} [end]
- * @property {boolean} [error]
+ * @property {number} end
+ * @property {boolean} error
  *
  * @typedef {Object} Profile
  * @property {string} receivedAt
@@ -335,15 +335,16 @@ function LogqlApolloPlugin(options = Object.create(null)) {
               profile.executionEnd = getDuration(requestStartTime)
             },
             willResolveField({ info }) {
-              const resolver = {
-                path: responsePathAsArray(info.path),
-                start: getDuration(requestStartTime),
-              }
-              profile.resolvers.push(resolver)
+              const start = getDuration(requestStartTime)
 
               return function didResolveField(error) {
-                resolver.end = getDuration(requestStartTime)
-                resolver.error = !!error
+                const end = getDuration(requestStartTime)
+                profile.resolvers.push({
+                  path: responsePathAsArray(info.path),
+                  error: !!error,
+                  start,
+                  end,
+                })
               }
             },
           }

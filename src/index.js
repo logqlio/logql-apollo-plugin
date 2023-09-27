@@ -167,7 +167,6 @@ function pathAsString(resolver) {
  * @param {Partial<Config>} options
  * @returns {import('@apollo/server').ApolloServerPlugin}
  */
-
 function LogqlApolloPlugin(options = Object.create(null)) {
   const maybeConfig = getConfig(options)
 

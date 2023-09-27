@@ -6,6 +6,8 @@ const os = require('os')
 const retry = require('async-retry')
 const fetch = require('node-fetch')
 
+const plugin = require('../package.json')
+
 const compress = promisify(gzip)
 
 const userAgent = `logql-apollo-plugin; node ${process.version}; ${os.platform()} ${os.release()}`
@@ -67,6 +69,8 @@ async function sendWithRetry(path, data, config, logger) {
               'x-attempt-count': attempt,
               'x-api-key': apiKey,
               'x-environment': environment,
+              'x-plugin-name': plugin.name,
+              'x-plugin-version': plugin.version,
             },
             body: compressed,
             signal: controller.signal,

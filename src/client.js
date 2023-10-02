@@ -42,7 +42,7 @@ function text(input) {
  * @param {string} path
  * @param {Data} data
  * @param {import('./config').Config} config
- * @param {*} logger
+ * @param {import('@apollo/utils.logger').Logger} logger
  */
 async function sendWithRetry(path, data, config, logger) {
   const { endpoint, apiKey, timeout, environment } = config

@@ -14,6 +14,11 @@ const { json, text, sendWithRetry } = require('./client')
  *
  * @typedef {(string | number)[]} Path
  * @typedef {{ path: Path; start: number; end: number; error: boolean}} Resolver
+ * @typedef {{ count: number, duration: number, errors: number }} Metrics
+ * @typedef {Record<string, Metrics>} MetricsMap
+ * @typedef {{ resolvers: MetricsMap; clients: MetricsMap} & Metrics} OperationMetrics
+ * @typedef {Record<string, OperationMetrics>} OperationMap
+ * @typedef {{ schemaHash: string; operations: OperationMap}} Report
  *
  * @typedef {Object} Profile
  * @property {string} receivedAt
@@ -85,7 +90,7 @@ async function sendError(errors, schemaHash, profile, requestContext, config, lo
 }
 
 /**
- * @param {*} reportMap
+ * @param {Report} reportMap
  * @param {Config} config
  * @param {Logger} logger
  */
@@ -185,7 +190,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
 
   /** @type {string} */
   let schemaHash
-  /** @type {{ schemaHash: string; operations: any} | null} */
+  /** @type {Report | null} */
   let report
   /** @type {NodeJS.Timer | null} */
   let reportTimer

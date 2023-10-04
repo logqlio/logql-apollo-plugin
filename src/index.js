@@ -15,10 +15,10 @@ const { json, text, sendWithRetry } = require('./client')
  * @typedef {(string | number)[]} Path
  * @typedef {{ path: Path; start: number; end: number; error: boolean}} Resolver
  * @typedef {{ count: number, duration: number, errors: number }} Metrics
- * @typedef {Record<string, Metrics>} MetricsMap
- * @typedef {{ resolvers: MetricsMap; clients: MetricsMap} & Metrics} OperationMetrics
- * @typedef {Record<string, OperationMetrics>} OperationMap
- * @typedef {{ schemaHash: string; operations: OperationMap}} Report
+ * @typedef {{ resolvers: { [path in string]: Metrics }} & Metrics} OperationMetrics
+ * @typedef {{[queryHash in string]: OperationMetrics}} OperationsMap
+ * @typedef {{[clientName in string]: OperationsMap}} ClientMap
+ * @typedef {{ schemaHash: string; clients: ClientMap}} Report
  *
  * @typedef {Object} Profile
  * @property {string} receivedAt
@@ -95,22 +95,24 @@ async function sendError(errors, schemaHash, profile, requestContext, config, lo
  * @param {Logger} logger
  */
 async function sendReport(reportMap, config, logger) {
-  const operationEntries = Object.entries(reportMap.operations)
+  const clientEntries = Object.entries(reportMap.clients)
 
   // Don't send anything if the report is empty
-  if (operationEntries.length === 0) {
+  if (clientEntries.length === 0) {
     return
   }
 
   // Transform the report from a key/value format to array
   const report = {
-    ...reportMap,
-    operations: operationEntries.map(([queryHash, operation]) => ({
-      ...operation,
-      queryHash,
-      resolvers: Object.entries(operation.resolvers).map(([path, resolver]) => ({ ...resolver, path })),
-      clients: Object.entries(operation.clients).map(([name, client]) => ({ ...client, name })),
-    })),
+    schemaHash: reportMap.schemaHash,
+    metrics: clientEntries.flatMap(([clientName, operationsMap]) => {
+      return Object.entries(operationsMap).map(([queryHash, operationMetrics]) => ({
+        ...operationMetrics,
+        queryHash,
+        clientName,
+        resolvers: Object.entries(operationMetrics.resolvers).map(([path, metrics]) => ({ ...metrics, path })),
+      }))
+    }),
   }
   return await sendWithRetry('metrics', json(report), config, logger)
 }
@@ -227,12 +229,12 @@ function LogqlApolloPlugin(options = Object.create(null)) {
    */
   function sendReportAndResetTimer(logger) {
     sendReportAndStopTimer(logger)
-    report = { schemaHash, operations: Object.create(null) }
+    report = { schemaHash, clients: Object.create(null) }
     reportTimer = setInterval(() => {
       /* istanbul ignore else */
       if (report) {
         sendReport(report, config, logger).catch((err) => logReportingFailure(err, logger))
-        report = { schemaHash, operations: Object.create(null) }
+        report = { schemaHash, clients: Object.create(null) }
         reportEntriesCount = 0
       }
     }, config.reportIntervalMs)
@@ -278,26 +280,27 @@ function LogqlApolloPlugin(options = Object.create(null)) {
         const { queryHash, request } = requestContext
         /* istanbul ignore else */
         if (queryHash) {
-          const hasError = !!requestContext.errors
-          if (!(queryHash in report.operations)) {
-            report.operations[`${queryHash}`] = { count: 0, duration: 0, errors: 0, resolvers: {}, clients: {} }
+          const clientName = request.http?.headers.get('apollographql-client-name') || ''
+
+          if (!(clientName in report.clients)) {
+            report.clients[`${clientName}`] = Object.create(null)
+          }
+
+          if (!(queryHash in report.clients[`${clientName}`])) {
+            report.clients[`${clientName}`][`${queryHash}`] = {
+              count: 0,
+              duration: 0,
+              errors: 0,
+              resolvers: {},
+            }
             reportEntriesCount++
           }
-          const operation = report.operations[`${queryHash}`]
+
+          const hasError = !!requestContext.errors
+          const operation = report.clients[`${clientName}`][`${queryHash}`]
           operation.count++
           operation.errors += hasError ? 1 : 0
           operation.duration += Math.round((duration - operation.duration) / operation.count)
-
-          const clientName = request.http?.headers.get('apollographql-client-name')
-          if (clientName) {
-            if (!(clientName in operation.clients)) {
-              operation.clients[`${clientName}`] = { count: 0, duration: 0, errors: 0 }
-            }
-            const client = operation.clients[`${clientName}`]
-            client.count++
-            client.errors += hasError ? 1 : 0
-            client.duration += Math.round((duration - operation.duration) / operation.count)
-          }
 
           for (const resolver of profile.resolvers) {
             const key = pathAsString(resolver)

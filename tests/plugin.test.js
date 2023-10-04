@@ -381,14 +381,14 @@ describe('Request handling with Apollo Federation', () => {
     })
     expect(report).toEqual({
       schemaHash,
-      operations: [
+      metrics: [
         {
           queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
-          clients: [],
+          clientName: '',
         },
       ],
     })
@@ -484,21 +484,14 @@ describe('Request handling with Apollo Federation', () => {
     })
     expect(report).toEqual({
       schemaHash,
-      operations: [
+      metrics: [
         {
           queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
-          clients: [
-            {
-              name: 'Web',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 1,
-            },
-          ],
+          clientName: 'Web',
         },
       ],
     })
@@ -599,14 +592,14 @@ describe('Request handling with Apollo Federation', () => {
     })
     expect(report).toEqual({
       schemaHash,
-      operations: [
+      metrics: [
         {
           queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
-          clients: [],
+          clientName: '',
         },
       ],
     })
@@ -772,13 +765,13 @@ describe('Request handling with Apollo Federation', () => {
     }
     expect(report).toEqual({
       schemaHash,
-      operations: batch.map((b) => ({
+      metrics: batch.map((b) => ({
         queryHash: createHash('sha256').update(b.query).digest('hex'),
         count: 1,
         duration: expect.any(Number),
         errors: 1,
         resolvers: [],
-        clients: [],
+        clientName: '',
       })),
     })
   })
@@ -907,14 +900,14 @@ describe('Request handling with Apollo Federation', () => {
     expect(logql.activeMocks()).toHaveLength(0)
     expect(report).toEqual({
       schemaHash,
-      operations: [
+      metrics: [
         {
           queryHash: createHash('sha256').update(query).digest('hex'),
           count: 7,
           duration: expect.any(Number),
           errors: 0,
           resolvers: [],
-          clients: [],
+          clientName: '',
         },
       ],
     })
@@ -1006,14 +999,14 @@ describe('Request handling with Apollo Federation', () => {
     expect(logql.activeMocks()).toHaveLength(0)
     expect(report).toEqual({
       schemaHash,
-      operations: [
+      metrics: [
         {
           queryHash: createHash('sha256').update(query).digest('hex'),
           count: 2,
           duration: expect.any(Number),
           errors: 0,
           resolvers: [],
-          clients: [],
+          clientName: '',
         },
       ],
     })
@@ -1115,14 +1108,14 @@ describe('Request handling with Apollo Federation', () => {
     expect(logql.activeMocks()).toHaveLength(0)
     expect(report).toEqual({
       schemaHash,
-      operations: [
+      metrics: [
         {
           queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 0,
           resolvers: [],
-          clients: [],
+          clientName: '',
         },
       ],
     })
@@ -1199,14 +1192,14 @@ describe('Request handling with Apollo Federation', () => {
     expect(logql.activeMocks()).toHaveLength(0)
     expect(report).toEqual({
       schemaHash,
-      operations: [
+      metrics: [
         {
           queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 0,
           resolvers: [],
-          clients: [],
+          clientName: '',
         },
       ],
     })
@@ -1370,7 +1363,7 @@ describe('Request handling with Apollo Server', () => {
     })
     expect(report).toEqual({
       schemaHash,
-      operations: [
+      metrics: [
         {
           queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
@@ -1384,7 +1377,7 @@ describe('Request handling with Apollo Server', () => {
               duration: expect.any(Number),
             },
           ],
-          clients: [],
+          clientName: '',
         },
       ],
     })
@@ -1468,14 +1461,14 @@ describe('Request handling with Apollo Server', () => {
     })
     expect(report).toEqual({
       schemaHash,
-      operations: [
+      metrics: [
         {
           queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
-          clients: [],
+          clientName: '',
         },
       ],
     })
@@ -1570,7 +1563,7 @@ describe('Request handling with Apollo Server', () => {
     })
     expect(report).toEqual({
       schemaHash,
-      operations: [
+      metrics: [
         {
           queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
@@ -1584,7 +1577,7 @@ describe('Request handling with Apollo Server', () => {
               errors: 1,
             },
           ],
-          clients: [],
+          clientName: '',
         },
       ],
     })
@@ -1674,14 +1667,14 @@ describe('Request handling with Apollo Server', () => {
     })
     expect(report).toEqual({
       schemaHash,
-      operations: [
+      metrics: [
         {
           queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
-          clients: [],
+          clientName: '',
         },
       ],
     })
@@ -1776,14 +1769,14 @@ describe('Request handling with Apollo Server', () => {
     })
     expect(report).toEqual({
       schemaHash,
-      operations: [
+      metrics: [
         {
           queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
-          clients: [],
+          clientName: '',
         },
       ],
     })
@@ -1829,7 +1822,7 @@ describe('Request handling with Apollo Server', () => {
     expect(logql.pendingMocks()).toHaveLength(0)
     expect(report).toEqual({
       schemaHash,
-      operations: [
+      metrics: [
         {
           queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
@@ -1891,7 +1884,7 @@ describe('Request handling with Apollo Server', () => {
               errors: 0,
             },
           ]),
-          clients: [],
+          clientName: '',
         },
       ],
     })
@@ -2094,7 +2087,7 @@ describe('Request handling with Apollo Server', () => {
     expect(payload.profile.resolvers).toHaveLength(13)
     expect(report).toEqual({
       schemaHash,
-      operations: [
+      metrics: [
         {
           queryHash: createHash('sha256').update(query).digest('hex'),
           count: 1,
@@ -2162,7 +2155,7 @@ describe('Request handling with Apollo Server', () => {
               errors: 0,
             },
           ]),
-          clients: [],
+          clientName: '',
         },
       ],
     })

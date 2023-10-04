@@ -17,7 +17,7 @@ const { json, text, sendWithRetry } = require('./client')
  * @typedef {{ count: number, duration: number, errors: number }} Metrics
  * @typedef {{ resolvers: Map<string, Metrics> } & Metrics} OperationMetrics
  * @typedef {Map<string, OperationMetrics>} OperationsMap
- * @typedef {Map<string, OperationsMap>} ClientMap
+ * @typedef {Map<string | null, OperationsMap>} ClientMap
  * @typedef {{ schemaHash: string; clients: ClientMap }} Report
  *
  * @typedef {Object} Profile
@@ -279,7 +279,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
         /* istanbul ignore else */
         if (queryHash) {
           const hasError = !!requestContext.errors
-          const clientName = request.http?.headers.get('apollographql-client-name') ?? ''
+          const clientName = request.http?.headers.get('apollographql-client-name') ?? null
 
           if (!report.clients.has(clientName)) {
             report.clients.set(clientName, new Map())

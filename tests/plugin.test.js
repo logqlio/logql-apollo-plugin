@@ -388,7 +388,7 @@ describe('Request handling with Apollo Federation', () => {
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
-          clientName: '',
+          clientName: null,
         },
       ],
     })
@@ -599,7 +599,7 @@ describe('Request handling with Apollo Federation', () => {
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
-          clientName: '',
+          clientName: null,
         },
       ],
     })
@@ -771,7 +771,7 @@ describe('Request handling with Apollo Federation', () => {
         duration: expect.any(Number),
         errors: 1,
         resolvers: [],
-        clientName: '',
+        clientName: null,
       })),
     })
   })
@@ -907,7 +907,7 @@ describe('Request handling with Apollo Federation', () => {
           duration: expect.any(Number),
           errors: 0,
           resolvers: [],
-          clientName: '',
+          clientName: null,
         },
       ],
     })
@@ -1006,7 +1006,7 @@ describe('Request handling with Apollo Federation', () => {
           duration: expect.any(Number),
           errors: 0,
           resolvers: [],
-          clientName: '',
+          clientName: null,
         },
       ],
     })
@@ -1115,7 +1115,7 @@ describe('Request handling with Apollo Federation', () => {
           duration: expect.any(Number),
           errors: 0,
           resolvers: [],
-          clientName: '',
+          clientName: null,
         },
       ],
     })
@@ -1199,7 +1199,7 @@ describe('Request handling with Apollo Federation', () => {
           duration: expect.any(Number),
           errors: 0,
           resolvers: [],
-          clientName: '',
+          clientName: null,
         },
       ],
     })
@@ -1377,7 +1377,7 @@ describe('Request handling with Apollo Server', () => {
               duration: expect.any(Number),
             },
           ],
-          clientName: '',
+          clientName: null,
         },
       ],
     })
@@ -1468,7 +1468,7 @@ describe('Request handling with Apollo Server', () => {
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
-          clientName: '',
+          clientName: null,
         },
       ],
     })
@@ -1577,7 +1577,7 @@ describe('Request handling with Apollo Server', () => {
               errors: 1,
             },
           ],
-          clientName: '',
+          clientName: null,
         },
       ],
     })
@@ -1674,7 +1674,7 @@ describe('Request handling with Apollo Server', () => {
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
-          clientName: '',
+          clientName: null,
         },
       ],
     })
@@ -1776,7 +1776,7 @@ describe('Request handling with Apollo Server', () => {
           duration: expect.any(Number),
           errors: 1,
           resolvers: [],
-          clientName: '',
+          clientName: null,
         },
       ],
     })
@@ -1884,7 +1884,7 @@ describe('Request handling with Apollo Server', () => {
               errors: 0,
             },
           ]),
-          clientName: '',
+          clientName: null,
         },
       ],
     })
@@ -2155,7 +2155,7 @@ describe('Request handling with Apollo Server', () => {
               errors: 0,
             },
           ]),
-          clientName: '',
+          clientName: null,
         },
       ],
     })

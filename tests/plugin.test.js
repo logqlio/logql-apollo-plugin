@@ -1836,6 +1836,18 @@ describe('Request handling with Apollo Server', () => {
               errors: 0,
             },
             {
+              path: 'user.id',
+              count: 1,
+              duration: expect.any(Number),
+              errors: 0,
+            },
+            {
+              path: 'user.name',
+              count: 1,
+              duration: expect.any(Number),
+              errors: 0,
+            },
+            {
               path: 'user.group',
               count: 1,
               duration: expect.any(Number),
@@ -1868,18 +1880,6 @@ describe('Request handling with Apollo Server', () => {
             {
               path: 'user.group.users.name',
               count: 2,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.id',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.name',
-              count: 1,
               duration: expect.any(Number),
               errors: 0,
             },
@@ -2101,6 +2101,18 @@ describe('Request handling with Apollo Server', () => {
               errors: 0,
             },
             {
+              path: 'user.id',
+              count: 1,
+              duration: expect.any(Number),
+              errors: 0,
+            },
+            {
+              path: 'user.name',
+              count: 1,
+              duration: expect.any(Number),
+              errors: 0,
+            },
+            {
               path: 'user.group',
               count: 1,
               duration: expect.any(Number),
@@ -2139,18 +2151,6 @@ describe('Request handling with Apollo Server', () => {
             {
               path: 'user.group.users.name',
               count: 2,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.id',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.name',
-              count: 1,
               duration: expect.any(Number),
               errors: 0,
             },

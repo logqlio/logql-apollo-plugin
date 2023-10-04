@@ -11,7 +11,7 @@ const ConfigSchema = z.object({
   sendHeaders: z.boolean().default(false),
   runInTests: z.boolean().default(false),
   verbose: z.boolean().default(false),
-  reportIntervalMs: z.number().min(0).default(10000),
+  reportIntervalMs: z.number().min(0).default(5000),
   reportEntriesThreshold: z.number().min(1).default(1024),
   cacheSize: z.number().min(1).default(16384),
   sampling: z.number().min(0).max(1).default(1.0),

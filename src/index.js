@@ -278,14 +278,17 @@ function LogqlApolloPlugin(options = Object.create(null)) {
         const { queryHash, request } = requestContext
         /* istanbul ignore else */
         if (queryHash) {
-          const clientName = request.http?.headers.get('apollographql-client-name') || ''
+          const hasError = !!requestContext.errors
+          const clientName = request.http?.headers.get('apollographql-client-name') ?? ''
 
           if (!report.clients.has(clientName)) {
             report.clients.set(clientName, new Map())
           }
 
-          if (!report.clients.get(clientName)?.has(queryHash)) {
-            report.clients.get(clientName)?.set(queryHash, {
+          const client = /** @type {OperationsMap!} */ (report.clients.get(clientName))
+
+          if (!client.has(queryHash)) {
+            client.set(queryHash, {
               count: 0,
               duration: 0,
               errors: 0,
@@ -294,20 +297,20 @@ function LogqlApolloPlugin(options = Object.create(null)) {
             reportEntriesCount++
           }
 
-          const hasError = !!requestContext.errors
-          const operation = report.clients.get(clientName)?.get(queryHash)
+          const operation = /** @type {OperationMetrics} */ (client.get(queryHash))
+
           operation.count++
           operation.errors += hasError ? 1 : 0
           operation.duration += Math.round((duration - operation.duration) / operation.count)
 
           for (const resolver of profile.resolvers) {
-            const key = pathAsString(resolver)
+            const path = pathAsString(resolver)
             const duration = (resolver.end || getDuration(requestStartTime)) - resolver.start
-            if (!operation.resolvers.has(key)) {
-              operation.resolvers.set(key, { count: 0, duration: 0, errors: 0 })
+            if (!operation.resolvers.has(path)) {
+              operation.resolvers.set(path, { count: 0, duration: 0, errors: 0 })
               reportEntriesCount++
             }
-            const rs = operation.resolvers.get(key)
+            const rs = /** @type {Metrics} */ (operation.resolvers.get(path))
             rs.count++
             rs.errors += resolver.error ? 1 : 0
             rs.duration += Math.round((duration - rs.duration) / rs.count)

@@ -118,4 +118,4 @@ async function sendWithRetry(path, data, config, logger) {
   }
 }
 
-module.exports = { json, text, sendWithRetry }
+module.exports = { json, text, sendWithRetry, compress }

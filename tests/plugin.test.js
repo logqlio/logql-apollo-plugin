@@ -9,13 +9,15 @@ const { startStandaloneServer } = require('@apollo/server/standalone')
 const { ApolloGateway } = require('@apollo/gateway')
 const { createHash } = require('crypto')
 const { readFileSync } = require('fs')
-const { gzip, gunzipSync } = require('zlib')
+const { gunzipSync } = require('zlib')
 const request = require('supertest')
 const nock = require('nock')
 
 const LogqlApolloPlugin = require('../')
+const { compress } = require('../src/client')
 
-const logger = { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() }
+const noop = () => {}
+const logger = { debug: noop, info: noop, warn: noop, error: noop }
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 const waitFor = async (predicate, ms = 100, timeout = 4000) => {
   for (let attempt = 0; attempt * ms < timeout; ++attempt) {
@@ -61,12 +63,6 @@ function getFederatedServer(config = {}) {
     gateway: new ApolloGateway(),
     plugins: [getConfiguredPlugin(config)],
     allowBatchedHttpRequests: true,
-  })
-}
-
-async function compress(payload) {
-  return new Promise((resolve, reject) => {
-    gzip(payload, (error, res) => (error ? reject(error) : resolve(res)))
   })
 }
 

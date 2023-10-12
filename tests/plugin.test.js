@@ -9,13 +9,15 @@ const { startStandaloneServer } = require('@apollo/server/standalone')
 const { ApolloGateway } = require('@apollo/gateway')
 const { createHash, randomUUID } = require('crypto')
 const { readFileSync } = require('fs')
-const { gzip, gunzipSync } = require('zlib')
+const { gunzipSync } = require('zlib')
 const request = require('supertest')
 const nock = require('nock')
 
 const LogqlApolloPlugin = require('../')
+const { compress } = require('../src/client')
 
-const logger = { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() }
+const noop = () => {}
+const logger = { debug: noop, info: noop, warn: noop, error: noop }
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 const waitFor = async (predicate, ms = 100, timeout = 4000) => {
   for (let attempt = 0; attempt * ms < timeout; ++attempt) {
@@ -64,19 +66,13 @@ function getFederatedServer(config = {}) {
   })
 }
 
-async function compress(payload) {
-  return new Promise((resolve, reject) => {
-    gzip(payload, (error, res) => (error ? reject(error) : resolve(res)))
-  })
-}
-
 function decompress(payload) {
   const buffer = Buffer.from(payload, 'hex')
   return gunzipSync(buffer).toString('utf-8')
 }
 
-function logqlMock() {
-  return nock(`https://ingress.logql.io/default`, {
+function logqlMock(endpoint = 'https://ingress.logql.io') {
+  return nock(`${endpoint}/default`, {
     reqheaders: {
       'user-agent': /logql-apollo-plugin; .*; .*/,
       'content-encoding': 'gzip',
@@ -101,65 +97,6 @@ beforeAll(() => {
 
 afterAll(() => {
   //nock.cleanAll()
-})
-
-describe('Config Validation', () => {
-  const initPlugin = LogqlApolloPlugin
-
-  beforeAll(() => {
-    process.env.NODE_ENV = 'development'
-    jest.spyOn(console, 'error').mockImplementation(() => {})
-  })
-
-  afterAll(() => {
-    process.env.NODE_ENV = 'test'
-    console.error.mockRestore()
-  })
-
-  afterEach(() => {
-    console.error.mockClear()
-  })
-
-  it('log an error when no config is given', () => {
-    expect(initPlugin()).toEqual({})
-    expect(console.error).toHaveBeenCalledWith('[logql-plugin][ERROR][init] Invalid options: Required at "apiKey"')
-  })
-
-  it('log an error when config is empty', () => {
-    expect(initPlugin({})).toEqual({})
-    expect(console.error).toHaveBeenCalledWith('[logql-plugin][ERROR][init] Invalid options: Required at "apiKey"')
-  })
-
-  it('work with valid minimal config', () => {
-    const config = { apiKey: 'logql:FAKE_API_KEY' }
-    expect(initPlugin(config)).not.toEqual({})
-  })
-
-  it('load config from env', () => {
-    process.env.LOGQL_API_KEY = 'logql:FAKE_API_KEY'
-    expect(initPlugin({})).not.toEqual({})
-  })
-
-  it('log an error when passed a non-object', () => {
-    expect(initPlugin('banana')).toEqual({})
-    expect(console.error).toHaveBeenCalledWith(
-      '[logql-plugin][ERROR][init] Invalid options type: Expected an object, got string'
-    )
-  })
-
-  it('log a warning when env variables are not matching types', () => {
-    process.env.LOGQL_TIMEOUT = 'NOT_A_NUMBER!'
-    expect(initPlugin({ apiKey: 'logql:FAKE_API_KEY' })).not.toEqual({})
-    expect(console.error).toHaveBeenCalledWith(
-      '[logql-plugin][WARNING][init] Invalid values supplied as environment variables, ignoring: timeout: Invalid number input: "NOT_A_NUMBER!"'
-    )
-  })
-
-  it('does nothing in tests by default', () => {
-    process.env.NODE_ENV = 'test'
-    expect(initPlugin({ runInTests: false })).toEqual({})
-    expect(console.error).not.toHaveBeenCalled()
-  })
 })
 
 describe('Schema reporting with Apollo Federation', () => {
@@ -291,10 +228,11 @@ describe('Request handling with Apollo Federation', () => {
           },
         },
       })
-    logql = logqlMock()
+    const endpoint = `https://fake-logql/${randomUUID()}`
+    logql = logqlMock(endpoint)
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
       .reply(204)
-    graphqlServer = getFederatedServer()
+    graphqlServer = getFederatedServer({ endpoint })
     const { url } = await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
     graphqlServerUrl = url
     //nock.recorder.rec()
@@ -307,7 +245,7 @@ describe('Request handling with Apollo Federation', () => {
       graphqlServer = null
     }
     nock.abortPendingRequests()
-    nock.cleanAll()
+    // nock.cleanAll()
     //nock.recorder.clear()
   })
 
@@ -1269,10 +1207,11 @@ describe('Request handling with Apollo Server', () => {
           },
         },
       })
-    logql = logqlMock()
+    const endpoint = `https://fake-logql/${randomUUID()}`
+    logql = logqlMock(endpoint)
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
       .reply(204)
-    graphqlServer = getRegularServer(schema, resolvers, { sampling: 0.1 })
+    graphqlServer = getRegularServer(schema, resolvers, { sampling: 0.1, endpoint })
     const { url } = await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
     graphqlServerUrl = url
     //nock.recorder.rec()

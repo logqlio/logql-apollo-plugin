@@ -7,7 +7,7 @@ process.env.APOLLO_SCHEMA_REPORTING = false
 const { ApolloServer } = require('@apollo/server')
 const { startStandaloneServer } = require('@apollo/server/standalone')
 const { ApolloGateway } = require('@apollo/gateway')
-const { createHash } = require('crypto')
+const { createHash, randomUUID } = require('crypto')
 const { readFileSync } = require('fs')
 const { gunzipSync } = require('zlib')
 const request = require('supertest')
@@ -71,8 +71,8 @@ function decompress(payload) {
   return gunzipSync(buffer).toString('utf-8')
 }
 
-function logqlMock() {
-  return nock(`https://ingress.logql.io/default`, {
+function logqlMock(endpoint = 'https://ingress.logql.io') {
+  return nock(`${endpoint}/default`, {
     reqheaders: {
       'user-agent': /logql-apollo-plugin; .*; .*/,
       'content-encoding': 'gzip',
@@ -228,10 +228,11 @@ describe('Request handling with Apollo Federation', () => {
           },
         },
       })
-    logql = logqlMock()
+    const endpoint = `https://fake-logql/${randomUUID()}`
+    logql = logqlMock(endpoint)
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
       .reply(204)
-    graphqlServer = getFederatedServer()
+    graphqlServer = getFederatedServer({ endpoint })
     const { url } = await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
     graphqlServerUrl = url
     //nock.recorder.rec()
@@ -244,7 +245,7 @@ describe('Request handling with Apollo Federation', () => {
       graphqlServer = null
     }
     nock.abortPendingRequests()
-    nock.cleanAll()
+    // nock.cleanAll()
     //nock.recorder.clear()
   })
 
@@ -1206,10 +1207,11 @@ describe('Request handling with Apollo Server', () => {
           },
         },
       })
-    logql = logqlMock()
+    const endpoint = `https://fake-logql/${randomUUID()}`
+    logql = logqlMock(endpoint)
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
       .reply(204)
-    graphqlServer = getRegularServer(schema, resolvers, { sampling: 0.1 })
+    graphqlServer = getRegularServer(schema, resolvers, { sampling: 0.1, endpoint })
     const { url } = await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
     graphqlServerUrl = url
     //nock.recorder.rec()

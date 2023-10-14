@@ -54,50 +54,43 @@ async function sendWithRetry(path, data, config, logger) {
 
     await retry(
       async (bail, attempt) => {
-        const controller = new AbortController()
-        const abortTimeout = setTimeout(() => controller.abort(), timeout)
+        // @ts-ignore
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'user-agent': userAgent,
+            'content-encoding': 'gzip',
+            'content-type': data.contentType,
+            'x-request-id': requestId,
+            'x-attempt-count': attempt,
+            'x-api-key': apiKey,
+            'x-environment': environment,
+            'x-plugin-name': plugin.name,
+            'x-plugin-version': plugin.version,
+          },
+          body: compressed,
+          timeout,
+        })
 
-        try {
-          // @ts-ignore
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'user-agent': userAgent,
-              'content-encoding': 'gzip',
-              'content-type': data.contentType,
-              'x-request-id': requestId,
-              'x-attempt-count': attempt,
-              'x-api-key': apiKey,
-              'x-environment': environment,
-              'x-plugin-name': plugin.name,
-              'x-plugin-version': plugin.version,
-            },
-            body: compressed,
-            signal: controller.signal,
-          })
-
-          if (res.status === 401 || res.status === 403) {
-            bail(Error(`Failed to authenticate with status ${res.status} - path: ${path}`))
-            return res
-          }
-
-          if (res.status === 413) {
-            bail(Error(`Content too large: ${compressed.length} (${data.body.length}) uncompressed - path: ${path}`))
-            return res
-          }
-
-          if (res.status >= 400 && res.status < 500) {
-            throw Error(`Client error with status ${res.status} - path: ${path}`)
-          }
-
-          if (res.status >= 500 && res.status < 600) {
-            throw Error(`Server error with status ${res.status} - path: ${path}`)
-          }
-
+        if (res.status === 401 || res.status === 403) {
+          bail(Error(`Failed to authenticate with status ${res.status} - path: ${path}`))
           return res
-        } finally {
-          clearTimeout(abortTimeout)
         }
+
+        if (res.status === 413) {
+          bail(Error(`Content too large: ${compressed.length} (${data.body.length}) uncompressed - path: ${path}`))
+          return res
+        }
+
+        if (res.status >= 400 && res.status < 500) {
+          throw Error(`Client error with status ${res.status} - path: ${path}`)
+        }
+
+        if (res.status >= 500 && res.status < 600) {
+          throw Error(`Server error with status ${res.status} - path: ${path}`)
+        }
+
+        return res
       },
       {
         retries: 3,

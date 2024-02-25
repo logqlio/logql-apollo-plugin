@@ -106,7 +106,9 @@ async function sendWithRetry(path, data, config, logger) {
     )
     return true
   } catch (err) {
-    logger.error(`[logql-plugin][ERROR][client] request failed ${url}: ${err}`)
+    if (config.verbose) {
+      logger.error(`[logql-plugin][ERROR][client] request failed ${url}: ${err}`)
+    }
     return false
   }
 }

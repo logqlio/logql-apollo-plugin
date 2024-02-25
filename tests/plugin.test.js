@@ -1228,6 +1228,103 @@ describe('Request handling with Apollo Server', () => {
     //nock.recorder.clear()
   })
 
+  it('does not report error on persisted query not found', async () => {
+    jest.spyOn(global.Math, 'random').mockReturnValue(0)
+
+    const query = `query NotPersisted { hello }`
+    const sha256Hash = createHash('sha256').update(query).digest('hex')
+    const extensions = JSON.stringify({
+      persistedQuery: {
+        version: 1,
+        sha256Hash,
+      },
+    })
+
+    const res = await request(graphqlServerUrl).get(`?extensions=${extensions}`).type('application/json').send()
+
+    expect(res.status).toBe(200)
+    expect(res.body.errors).toEqual([
+      { extensions: { code: 'PERSISTED_QUERY_NOT_FOUND' }, message: 'PersistedQueryNotFound' },
+    ])
+  })
+
+  it('send metrics for persisted queries', async () => {
+    let payload, report
+
+    jest.spyOn(global.Math, 'random').mockReturnValue(0)
+
+    logql
+      .post('/errors', (res) => {
+        payload = JSON.parse(decompress(res))
+        return true
+      })
+      .reply(204)
+      .post('/metrics', (res) => {
+        report = JSON.parse(decompress(res))
+        return true
+      })
+      .reply(204)
+
+    const query = `query NotPersisted { hello }`
+    const sha256Hash = createHash('sha256').update(query).digest('hex')
+    const extensions = JSON.stringify({
+      persistedQuery: {
+        version: 1,
+        sha256Hash,
+      },
+    })
+
+    const res = await request(graphqlServerUrl)
+      .get(`?extensions=${extensions}&query=${query}`)
+      .type('application/json')
+      .send()
+
+    expect(res.status).toBe(200)
+    expect(res.body.errors).toBeFalsy()
+    expect(res.body.data).toEqual({ hello: 'World!' })
+
+    await waitFor(() => payload && report)
+    expect(logql.pendingMocks()).toHaveLength(0)
+    expect(payload.metrics).toEqual({
+      startHrTime: [expect.any(Number), expect.any(Number)],
+      persistedQueryHit: false,
+      persistedQueryRegister: true,
+      captureTraces: true,
+    })
+    expect(report).toBeDefined()
+
+    payload = null
+    report = null
+
+    logql
+      .post('/errors', (res) => {
+        payload = JSON.parse(decompress(res))
+        return true
+      })
+      .reply(204)
+      .post('/metrics', (res) => {
+        report = JSON.parse(decompress(res))
+        return true
+      })
+      .reply(204)
+
+    const pers = await request(graphqlServerUrl).get(`?extensions=${extensions}`).type('application/json').send()
+
+    expect(pers.status).toBe(200)
+    expect(pers.body.errors).toBeFalsy()
+    expect(pers.body.data).toEqual({ hello: 'World!' })
+
+    await waitFor(() => payload && report)
+    expect(logql.pendingMocks()).toHaveLength(0)
+    expect(payload.metrics).toEqual({
+      startHrTime: [expect.any(Number), expect.any(Number)],
+      persistedQueryHit: true,
+      persistedQueryRegister: false,
+      captureTraces: true,
+    })
+    expect(report).toBeDefined()
+  })
+
   it('Send request when sampled and not error', async () => {
     let payload, report
 

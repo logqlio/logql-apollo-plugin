@@ -1154,6 +1154,242 @@ describe('Request handling with Apollo Federation', () => {
       ],
     })
   })
+
+  it('when request ingestion fail, send operation source gain', async () => {
+    let payload = [],
+      report = []
+
+    const pandas = nock('http://pandas:4000').post('/graphql').twice().replyWithError({ code: 'ENETUNREACH' })
+
+    logql
+      .post('/errors', (res) => {
+        payload.push(JSON.parse(decompress(res)))
+        return true
+      })
+      .reply(503)
+      .post('/metrics', (res) => {
+        report.push(JSON.parse(decompress(res)))
+        return true
+      })
+      .reply(204)
+
+    const query = gql`
+      query AllPandas {
+        allPandas {
+          name
+          favoriteFood
+        }
+      }
+    `
+
+    const res1 = await request(graphqlServerUrl).post('').type('application/json').send({ query })
+
+    expect(res1.status).toBe(200)
+    expect(res1.body.errors).toEqual([
+      {
+        extensions: { code: 'INTERNAL_SERVER_ERROR' },
+        message: 'request to http://pandas:4000/graphql failed, reason: undefined',
+      },
+    ])
+
+    await waitFor(() => logql.activeMocks().length === 0)
+    expect(logql.activeMocks()).toHaveLength(0)
+
+    logql
+      .post('/errors', (res) => {
+        payload.push(JSON.parse(decompress(res)))
+        return true
+      })
+      .reply(204)
+      .post('/metrics', (res) => {
+        report.push(JSON.parse(decompress(res)))
+        return true
+      })
+      .reply(204)
+
+    const res2 = await request(graphqlServerUrl).post('').type('application/json').send({ query })
+
+    expect(res2.status).toBe(200)
+    expect(res2.body.errors).toEqual([
+      {
+        extensions: { code: 'INTERNAL_SERVER_ERROR' },
+        message: 'request to http://pandas:4000/graphql failed, reason: undefined',
+      },
+    ])
+
+    expect(pandas.pendingMocks()).toHaveLength(0)
+
+    await waitFor(() => logql.activeMocks().length === 0)
+    expect(logql.activeMocks()).toHaveLength(0)
+
+    expect(report).toHaveLength(2)
+    expect(report[0]).toEqual({
+      schemaHash,
+      metrics: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
+          count: 1,
+          duration: expect.any(Number),
+          errors: 1,
+          resolvers: [],
+          clientName: null,
+        },
+      ],
+    })
+    expect(report[1]).toEqual({
+      schemaHash,
+      metrics: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
+          count: 1,
+          duration: expect.any(Number),
+          errors: 1,
+          resolvers: [],
+          clientName: null,
+        },
+      ],
+    })
+
+    expect(payload).toHaveLength(2)
+    expect(payload[0]).toMatchObject({
+      schemaHash,
+      client: {},
+      operation: {
+        queryHash: createHash('sha256').update(query).digest('hex'),
+        source: query,
+        operationName: 'AllPandas',
+        operationType: 'query',
+      },
+    })
+    expect(payload[1]).toMatchObject({
+      schemaHash,
+      client: {},
+      operation: {
+        queryHash: createHash('sha256').update(query).digest('hex'),
+        source: query,
+        operationName: 'AllPandas',
+        operationType: 'query',
+      },
+    })
+  })
+
+  it('when request ingestion works, do not send operation source again', async () => {
+    let payload = [],
+      report = []
+
+    const pandas = nock('http://pandas:4000').post('/graphql').twice().replyWithError({ code: 'ENETUNREACH' })
+
+    logql
+      .post('/errors', (res) => {
+        payload.push(JSON.parse(decompress(res)))
+        return true
+      })
+      .reply(204)
+      .post('/metrics', (res) => {
+        report.push(JSON.parse(decompress(res)))
+        return true
+      })
+      .reply(204)
+
+    const query = gql`
+      query AllPandas {
+        allPandas {
+          name
+          favoriteFood
+        }
+      }
+    `
+
+    const res1 = await request(graphqlServerUrl).post('').type('application/json').send({ query })
+
+    expect(res1.status).toBe(200)
+    expect(res1.body.errors).toEqual([
+      {
+        extensions: { code: 'INTERNAL_SERVER_ERROR' },
+        message: 'request to http://pandas:4000/graphql failed, reason: undefined',
+      },
+    ])
+
+    await waitFor(() => logql.activeMocks().length === 0)
+    expect(logql.activeMocks()).toHaveLength(0)
+
+    logql
+      .post('/errors', (res) => {
+        payload.push(JSON.parse(decompress(res)))
+        return true
+      })
+      .reply(204)
+      .post('/metrics', (res) => {
+        report.push(JSON.parse(decompress(res)))
+        return true
+      })
+      .reply(204)
+
+    const res2 = await request(graphqlServerUrl).post('').type('application/json').send({ query })
+
+    expect(res2.status).toBe(200)
+    expect(res2.body.errors).toEqual([
+      {
+        extensions: { code: 'INTERNAL_SERVER_ERROR' },
+        message: 'request to http://pandas:4000/graphql failed, reason: undefined',
+      },
+    ])
+
+    expect(pandas.pendingMocks()).toHaveLength(0)
+
+    await waitFor(() => logql.activeMocks().length === 0)
+    expect(logql.activeMocks()).toHaveLength(0)
+
+    expect(report).toHaveLength(2)
+    expect(report[0]).toEqual({
+      schemaHash,
+      metrics: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
+          count: 1,
+          duration: expect.any(Number),
+          errors: 1,
+          resolvers: [],
+          clientName: null,
+        },
+      ],
+    })
+    expect(report[1]).toEqual({
+      schemaHash,
+      metrics: [
+        {
+          queryHash: createHash('sha256').update(query).digest('hex'),
+          count: 1,
+          duration: expect.any(Number),
+          errors: 1,
+          resolvers: [],
+          clientName: null,
+        },
+      ],
+    })
+
+    expect(payload).toHaveLength(2)
+    expect(payload[0]).toMatchObject({
+      schemaHash,
+      client: {},
+      operation: {
+        queryHash: createHash('sha256').update(query).digest('hex'),
+        source: query,
+        operationName: 'AllPandas',
+        operationType: 'query',
+      },
+    })
+    expect(payload[1]).toMatchObject({
+      schemaHash,
+      client: {},
+      operation: {
+        queryHash: createHash('sha256').update(query).digest('hex'),
+        source: null,
+        operationName: 'AllPandas',
+        operationType: 'query',
+      },
+    })
+  })
 })
 
 describe('Request handling with Apollo Server', () => {

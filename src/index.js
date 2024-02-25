@@ -19,6 +19,7 @@ const { json, text, sendWithRetry } = require('./client')
  * @typedef {Map<string, OperationMetrics>} OperationsMap
  * @typedef {Map<string | null, OperationsMap>} ClientMap
  * @typedef {{ schemaHash: string; clients: ClientMap }} Report
+ * @typedef {'synced' | 'pending'} SyncStatuses
  *
  * @typedef {Object} Profile
  * @property {string} receivedAt
@@ -43,6 +44,7 @@ async function sendSchema(schema, schemaHash, config, logger) {
 }
 
 /**
+ * @param {LRUCache<string, SyncStatuses>} syncedQueries
  * @param {readonly GraphQLError[] | undefined} errors
  * @param {string} schemaHash
  * @param {Profile} profile
@@ -50,7 +52,7 @@ async function sendSchema(schema, schemaHash, config, logger) {
  * @param {Config} config
  * @param {Logger} logger
  */
-async function sendError(errors, schemaHash, profile, requestContext, config, logger) {
+async function sendError(syncedQueries, errors, schemaHash, profile, requestContext, config, logger) {
   const { sendVariables, sendHeaders } = config
   const { source, queryHash, request, metrics, operationName, operation } = requestContext
   const { http } = request
@@ -69,7 +71,7 @@ async function sendError(errors, schemaHash, profile, requestContext, config, lo
       variables,
     },
     operation: {
-      source,
+      source: syncedQueries.get(queryHash) === 'synced' ? null : source,
       queryHash,
       operationName,
       operationType: operation && operation.operation,
@@ -86,7 +88,12 @@ async function sendError(errors, schemaHash, profile, requestContext, config, lo
       })),
   }
 
-  return await sendWithRetry('errors', json(payload), config, logger)
+  const success = await sendWithRetry('errors', json(payload), config, logger)
+  if (success) {
+    syncedQueries.set(queryHash, 'synced')
+  } else {
+    syncedQueries.delete(queryHash)
+  }
 }
 
 /**
@@ -116,7 +123,7 @@ async function sendReport(reportMap, config, logger) {
 }
 
 /**
- * @param {LRUCache<string, string>} syncedQueries
+ * @param {LRUCache<string, SyncStatuses>} syncedQueries
  * @param {string} schemaHash
  * @param {Profile} profile
  * @param {RequestContext} requestContext
@@ -126,7 +133,7 @@ async function sendReport(reportMap, config, logger) {
 async function sendOperation(syncedQueries, schemaHash, profile, requestContext, config, logger) {
   const { source, queryHash, operationName, operation } = requestContext
   if (!syncedQueries.has(queryHash)) {
-    syncedQueries.set(queryHash, queryHash)
+    syncedQueries.set(queryHash, 'pending')
     /** @type {Set<string>} */
     const pathsSet = new Set()
     for (const resolver of profile.resolvers) {
@@ -145,7 +152,9 @@ async function sendOperation(syncedQueries, schemaHash, profile, requestContext,
       ],
     }
     const success = await sendWithRetry('operations', json(data), config, logger)
-    if (!success) {
+    if (success) {
+      syncedQueries.set(queryHash, 'synced')
+    } else {
       syncedQueries.delete(queryHash)
     }
   }
@@ -192,7 +201,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
     return {}
   }
 
-  /** @type {LRUCache<string, string>} */
+  /** @type {LRUCache<string, SyncStatuses>} */
   const syncedQueries = new LRUCache({ max: config.cacheSize })
 
   /** @type {string} */
@@ -370,7 +379,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
           }
           requestWillBeSent(requestContext)
           if (requestContext.errors || Math.random() < config.sampling) {
-            sendError(requestContext.errors, schemaHash, profile, requestContext, config, logger)
+            sendError(syncedQueries, requestContext.errors, schemaHash, profile, requestContext, config, logger)
           } else {
             sendOperation(syncedQueries, schemaHash, profile, requestContext, config, logger)
           }

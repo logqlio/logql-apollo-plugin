@@ -88,7 +88,12 @@ async function sendError(syncedQueries, errors, schemaHash, profile, requestCont
       })),
   }
 
-  return await sendWithRetry('errors', json(payload), config, logger)
+  const success = await sendWithRetry('errors', json(payload), config, logger)
+  if (success) {
+    syncedQueries.set(queryHash, 'synced')
+  } else {
+    syncedQueries.delete(queryHash)
+  }
 }
 
 /**
@@ -147,7 +152,9 @@ async function sendOperation(syncedQueries, schemaHash, profile, requestContext,
       ],
     }
     const success = await sendWithRetry('operations', json(data), config, logger)
-    if (!success) {
+    if (success) {
+      syncedQueries.set(queryHash, 'synced')
+    } else {
       syncedQueries.delete(queryHash)
     }
   }

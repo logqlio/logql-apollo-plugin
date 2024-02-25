@@ -167,6 +167,13 @@ function pathAsString(resolver) {
 }
 
 /**
+ * @param {RequestContext} requestContext
+ */
+function isPersistedQueryNotFound({ request, source, errors }) {
+  return errors && !source && request.http?.method === 'GET'
+}
+
+/**
  * @param {Partial<Config>} options
  * @returns {import('@apollo/server').ApolloServerPlugin}
  */
@@ -358,6 +365,9 @@ function LogqlApolloPlugin(options = Object.create(null)) {
           }
         },
         async willSendResponse(requestContext) {
+          if (isPersistedQueryNotFound(requestContext)) {
+            return
+          }
           requestWillBeSent(requestContext)
           if (requestContext.errors || Math.random() < config.sampling) {
             sendError(requestContext.errors, schemaHash, profile, requestContext, config, logger)

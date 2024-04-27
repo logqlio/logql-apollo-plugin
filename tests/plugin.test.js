@@ -250,7 +250,7 @@ describe('Request handling with Apollo Federation', () => {
   })
 
   it('Send errors when query is malformed (GRAPHQL_PARSE_FAILED)', async () => {
-    let payload, report
+    let payload
 
     logql
       .post('/errors', (res) => {
@@ -258,11 +258,7 @@ describe('Request handling with Apollo Federation', () => {
         return true
       })
       .reply(204)
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
+
     const query = gql`
       {
         syntax error {}
@@ -273,7 +269,7 @@ describe('Request handling with Apollo Federation', () => {
     expect(res.status).toBe(400)
     expect(res.body.errors).toBeTruthy()
 
-    await waitFor(() => payload && report)
+    await waitFor(() => payload)
     expect(logql.pendingMocks()).toHaveLength(0)
     expect(payload).toEqual({
       schemaHash,
@@ -317,23 +313,10 @@ describe('Request handling with Apollo Federation', () => {
         },
       ],
     })
-    expect(report).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 1,
-          duration: expect.any(Number),
-          errors: 1,
-          resolvers: [],
-          clientName: null,
-        },
-      ],
-    })
   })
 
   it('Send errors when field do not exists (GRAPHQL_VALIDATION_FAILED)', async () => {
-    let payload, report
+    let payload
 
     logql
       .post('/errors', (res) => {
@@ -341,11 +324,7 @@ describe('Request handling with Apollo Federation', () => {
         return true
       })
       .reply(204)
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
+
     const query = gql`
       query GetMissingField {
         missingField
@@ -361,7 +340,7 @@ describe('Request handling with Apollo Federation', () => {
     expect(res.status).toBe(400)
     expect(res.body.errors).toBeTruthy()
 
-    await waitFor(() => payload && report)
+    await waitFor(() => payload)
     expect(logql.pendingMocks()).toHaveLength(0)
     expect(payload).toEqual({
       schemaHash,
@@ -420,33 +399,15 @@ describe('Request handling with Apollo Federation', () => {
         },
       ],
     })
-    expect(report).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 1,
-          duration: expect.any(Number),
-          errors: 1,
-          resolvers: [],
-          clientName: 'Web',
-        },
-      ],
-    })
   })
 
   it('Send error when subgraph failed to resolve (ENETUNREACH)', async () => {
-    let payload, report
+    let payload
 
     const products = nock('http://products:4000').post('/graphql').replyWithError({ code: 'ENETUNREACH' })
     logql
       .post('/errors', (res) => {
         payload = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
         return true
       })
       .reply(204)
@@ -469,7 +430,7 @@ describe('Request handling with Apollo Federation', () => {
     expect(res.body.errors).toBeTruthy()
     expect(products.pendingMocks()).toHaveLength(0)
 
-    await waitFor(() => payload && report)
+    await waitFor(() => payload)
     expect(logql.pendingMocks()).toHaveLength(0)
     expect(payload).toEqual({
       schemaHash,
@@ -528,24 +489,10 @@ describe('Request handling with Apollo Federation', () => {
         },
       ],
     })
-    expect(report).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 1,
-          duration: expect.any(Number),
-          errors: 1,
-          resolvers: [],
-          clientName: null,
-        },
-      ],
-    })
   })
 
   it('Support query batching', async () => {
     const payloads = []
-    let report
 
     const products = nock('http://products:4000').post('/graphql').twice().reply(401)
     const pandas = nock('http://pandas:4000').post('/graphql').twice().reply(401)
@@ -556,11 +503,7 @@ describe('Request handling with Apollo Federation', () => {
       })
       .times(4)
       .reply(204)
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
+
     const batch = [
       {
         operationName: 'GetAllPandas',
@@ -631,7 +574,7 @@ describe('Request handling with Apollo Federation', () => {
       },
     }
 
-    await waitFor(() => payloads.length === 4 && report)
+    await waitFor(() => payloads.length === 4)
     expect(logql.pendingMocks()).toHaveLength(0)
     for (const b of batch) {
       const payload = payloads.find((p) => p.operation.operationName === b.operationName)
@@ -701,23 +644,11 @@ describe('Request handling with Apollo Federation', () => {
         ],
       })
     }
-    expect(report).toEqual({
-      schemaHash,
-      metrics: batch.map((b) => ({
-        queryHash: createHash('sha256').update(b.query).digest('hex'),
-        count: 1,
-        duration: expect.any(Number),
-        errors: 1,
-        resolvers: [],
-        clientName: null,
-      })),
-    })
   })
 
   // TODO: tests to handle failure from server, retry, timeout
 
   it('Send detailed report periodically', async () => {
-    let report
     let operation
 
     const zips = 'aaa,bbb,ccc,ddd,eee,fff,ggg'.split(',')
@@ -778,11 +709,7 @@ describe('Request handling with Apollo Federation', () => {
       })
 
     logql
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
+
       .post('/operations', (res) => {
         operation = JSON.parse(decompress(res))
         return true
@@ -836,19 +763,6 @@ describe('Request handling with Apollo Federation', () => {
 
     await waitFor(() => logql.activeMocks().length === 0)
     expect(logql.activeMocks()).toHaveLength(0)
-    expect(report).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 7,
-          duration: expect.any(Number),
-          errors: 0,
-          resolvers: [],
-          clientName: null,
-        },
-      ],
-    })
     expect(operation).toEqual({
       schemaHash,
       operations: [
@@ -864,7 +778,6 @@ describe('Request handling with Apollo Federation', () => {
   })
 
   it('do not send an operation body twice if it succeeded first time', async () => {
-    let report
     let operation
 
     const pandas = nock('http://pandas:4000')
@@ -886,11 +799,7 @@ describe('Request handling with Apollo Federation', () => {
       })
 
     logql
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
+
       .post('/operations', (res) => {
         operation = JSON.parse(decompress(res))
         return true
@@ -935,19 +844,6 @@ describe('Request handling with Apollo Federation', () => {
     expect(pandas.pendingMocks()).toHaveLength(0)
     await waitFor(() => logql.activeMocks().length === 0)
     expect(logql.activeMocks()).toHaveLength(0)
-    expect(report).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 2,
-          duration: expect.any(Number),
-          errors: 0,
-          resolvers: [],
-          clientName: null,
-        },
-      ],
-    })
     expect(operation).toEqual({
       schemaHash,
       operations: [
@@ -963,7 +859,6 @@ describe('Request handling with Apollo Federation', () => {
   })
 
   it.each([400, 500])('do send an operation body twice if it failed with status %p', async (status) => {
-    let report
     let operation
 
     const pandas = nock('http://pandas:4000')
@@ -985,11 +880,7 @@ describe('Request handling with Apollo Federation', () => {
       })
 
     logql
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
+
       .post('/operations', (res) => {
         operation = JSON.parse(decompress(res))
         return true
@@ -1044,19 +935,6 @@ describe('Request handling with Apollo Federation', () => {
     expect(pandas.pendingMocks()).toHaveLength(0)
     await waitFor(() => logql.activeMocks().length === 0)
     expect(logql.activeMocks()).toHaveLength(0)
-    expect(report).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 1,
-          duration: expect.any(Number),
-          errors: 0,
-          resolvers: [],
-          clientName: null,
-        },
-      ],
-    })
     expect(operation).toEqual({
       schemaHash,
       operations: [
@@ -1072,7 +950,6 @@ describe('Request handling with Apollo Federation', () => {
   })
 
   it.each([401, 403, 413])('do not send an operation body twice if it failed with status %p', async (status) => {
-    let report
     let operation
 
     const pandas = nock('http://pandas:4000')
@@ -1093,11 +970,7 @@ describe('Request handling with Apollo Federation', () => {
       })
 
     logql
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
+
       .post('/operations', (res) => {
         operation = JSON.parse(decompress(res))
         return true
@@ -1128,19 +1001,6 @@ describe('Request handling with Apollo Federation', () => {
 
     await waitFor(() => logql.pendingMocks().length === 0)
     expect(logql.activeMocks()).toHaveLength(0)
-    expect(report).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 1,
-          duration: expect.any(Number),
-          errors: 0,
-          resolvers: [],
-          clientName: null,
-        },
-      ],
-    })
     expect(operation).toEqual({
       schemaHash,
       operations: [
@@ -1155,9 +1015,8 @@ describe('Request handling with Apollo Federation', () => {
     })
   })
 
-  it('when request ingestion fail, send operation source gain', async () => {
-    let payload = [],
-      report = []
+  it('when request ingestion fail, send operation source again', async () => {
+    let payload = []
 
     const pandas = nock('http://pandas:4000').post('/graphql').twice().replyWithError({ code: 'ENETUNREACH' })
 
@@ -1167,11 +1026,6 @@ describe('Request handling with Apollo Federation', () => {
         return true
       })
       .reply(503)
-      .post('/metrics', (res) => {
-        report.push(JSON.parse(decompress(res)))
-        return true
-      })
-      .reply(204)
 
     const query = gql`
       query AllPandas {
@@ -1201,11 +1055,6 @@ describe('Request handling with Apollo Federation', () => {
         return true
       })
       .reply(204)
-      .post('/metrics', (res) => {
-        report.push(JSON.parse(decompress(res)))
-        return true
-      })
-      .reply(204)
 
     const res2 = await request(graphqlServerUrl).post('').type('application/json').send({ query })
 
@@ -1221,34 +1070,6 @@ describe('Request handling with Apollo Federation', () => {
 
     await waitFor(() => logql.activeMocks().length === 0)
     expect(logql.activeMocks()).toHaveLength(0)
-
-    expect(report).toHaveLength(2)
-    expect(report[0]).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 1,
-          duration: expect.any(Number),
-          errors: 1,
-          resolvers: [],
-          clientName: null,
-        },
-      ],
-    })
-    expect(report[1]).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 1,
-          duration: expect.any(Number),
-          errors: 1,
-          resolvers: [],
-          clientName: null,
-        },
-      ],
-    })
 
     expect(payload).toHaveLength(2)
     expect(payload[0]).toMatchObject({
@@ -1274,19 +1095,13 @@ describe('Request handling with Apollo Federation', () => {
   })
 
   it('when request ingestion works, do not send operation source again', async () => {
-    let payload = [],
-      report = []
+    let payload = []
 
     const pandas = nock('http://pandas:4000').post('/graphql').twice().replyWithError({ code: 'ENETUNREACH' })
 
     logql
       .post('/errors', (res) => {
         payload.push(JSON.parse(decompress(res)))
-        return true
-      })
-      .reply(204)
-      .post('/metrics', (res) => {
-        report.push(JSON.parse(decompress(res)))
         return true
       })
       .reply(204)
@@ -1319,11 +1134,6 @@ describe('Request handling with Apollo Federation', () => {
         return true
       })
       .reply(204)
-      .post('/metrics', (res) => {
-        report.push(JSON.parse(decompress(res)))
-        return true
-      })
-      .reply(204)
 
     const res2 = await request(graphqlServerUrl).post('').type('application/json').send({ query })
 
@@ -1339,34 +1149,6 @@ describe('Request handling with Apollo Federation', () => {
 
     await waitFor(() => logql.activeMocks().length === 0)
     expect(logql.activeMocks()).toHaveLength(0)
-
-    expect(report).toHaveLength(2)
-    expect(report[0]).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 1,
-          duration: expect.any(Number),
-          errors: 1,
-          resolvers: [],
-          clientName: null,
-        },
-      ],
-    })
-    expect(report[1]).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 1,
-          duration: expect.any(Number),
-          errors: 1,
-          resolvers: [],
-          clientName: null,
-        },
-      ],
-    })
 
     expect(payload).toHaveLength(2)
     expect(payload[0]).toMatchObject({
@@ -1485,18 +1267,13 @@ describe('Request handling with Apollo Server', () => {
   })
 
   it('send metrics for persisted queries', async () => {
-    let payload, report
+    let payload
 
     jest.spyOn(global.Math, 'random').mockReturnValue(0)
 
     logql
       .post('/errors', (res) => {
         payload = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
         return true
       })
       .reply(204)
@@ -1519,7 +1296,7 @@ describe('Request handling with Apollo Server', () => {
     expect(res.body.errors).toBeFalsy()
     expect(res.body.data).toEqual({ hello: 'World!' })
 
-    await waitFor(() => payload && report)
+    await waitFor(() => payload)
     expect(logql.pendingMocks()).toHaveLength(0)
     expect(payload.metrics).toEqual({
       startHrTime: [expect.any(Number), expect.any(Number)],
@@ -1527,19 +1304,12 @@ describe('Request handling with Apollo Server', () => {
       persistedQueryRegister: true,
       captureTraces: true,
     })
-    expect(report).toBeDefined()
 
     payload = null
-    report = null
 
     logql
       .post('/errors', (res) => {
         payload = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
         return true
       })
       .reply(204)
@@ -1550,7 +1320,7 @@ describe('Request handling with Apollo Server', () => {
     expect(pers.body.errors).toBeFalsy()
     expect(pers.body.data).toEqual({ hello: 'World!' })
 
-    await waitFor(() => payload && report)
+    await waitFor(() => payload)
     expect(logql.pendingMocks()).toHaveLength(0)
     expect(payload.metrics).toEqual({
       startHrTime: [expect.any(Number), expect.any(Number)],
@@ -1558,11 +1328,10 @@ describe('Request handling with Apollo Server', () => {
       persistedQueryRegister: false,
       captureTraces: true,
     })
-    expect(report).toBeDefined()
   })
 
   it('Send request when sampled and not error', async () => {
-    let payload, report
+    let payload
 
     logql
       .post('/errors', (res) => {
@@ -1570,11 +1339,7 @@ describe('Request handling with Apollo Server', () => {
         return true
       })
       .reply(204)
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
+
     const query = gql`
       query Hello {
         hello
@@ -1586,7 +1351,7 @@ describe('Request handling with Apollo Server', () => {
     expect(res.status).toBe(200)
     expect(res.body.errors).toBeFalsy()
 
-    await waitFor(() => payload && report)
+    await waitFor(() => payload)
     expect(logql.pendingMocks()).toHaveLength(0)
     expect(payload).toEqual({
       schemaHash,
@@ -1633,30 +1398,10 @@ describe('Request handling with Apollo Server', () => {
         captureTraces: true,
       },
     })
-    expect(report).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 1,
-          duration: expect.any(Number),
-          errors: 0,
-          resolvers: [
-            {
-              path: 'hello',
-              count: 1,
-              errors: 0,
-              duration: expect.any(Number),
-            },
-          ],
-          clientName: null,
-        },
-      ],
-    })
   })
 
   it('Send errors when query is malformed (GRAPHQL_PARSE_FAILED)', async () => {
-    let payload, report
+    let payload
 
     logql
       .post('/errors', (res) => {
@@ -1664,11 +1409,7 @@ describe('Request handling with Apollo Server', () => {
         return true
       })
       .reply(204)
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
+
     const query = gql`
       {
         syntax error {}
@@ -1679,7 +1420,7 @@ describe('Request handling with Apollo Server', () => {
     expect(res.status).toBe(400)
     expect(res.body.errors).toBeTruthy()
 
-    await waitFor(() => payload && report)
+    await waitFor(() => payload)
     expect(logql.pendingMocks()).toHaveLength(0)
     expect(payload).toEqual({
       schemaHash,
@@ -1731,23 +1472,10 @@ describe('Request handling with Apollo Server', () => {
         },
       ],
     })
-    expect(report).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 1,
-          duration: expect.any(Number),
-          errors: 1,
-          resolvers: [],
-          clientName: null,
-        },
-      ],
-    })
   })
 
   it('Send errors when mutation fail in resolver', async () => {
-    let payload, report
+    let payload
 
     logql
       .post('/errors', (res) => {
@@ -1755,11 +1483,7 @@ describe('Request handling with Apollo Server', () => {
         return true
       })
       .reply(204)
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
+
     const query = gql`
       mutation JustDoIt($value: Int!) {
         doSomething(x: $value)
@@ -1771,7 +1495,7 @@ describe('Request handling with Apollo Server', () => {
     expect(res.status).toBe(200)
     expect(res.body.errors).toBeTruthy()
 
-    await waitFor(() => payload && report)
+    await waitFor(() => payload)
     expect(logql.pendingMocks()).toHaveLength(0)
     expect(payload).toEqual({
       schemaHash,
@@ -1833,30 +1557,10 @@ describe('Request handling with Apollo Server', () => {
         },
       ],
     })
-    expect(report).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 1,
-          duration: expect.any(Number),
-          errors: 1,
-          resolvers: [
-            {
-              path: 'doSomething',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 1,
-            },
-          ],
-          clientName: null,
-        },
-      ],
-    })
   })
 
   it('Send errors when variables do not match query (BAD_USER_INPUT)', async () => {
-    let payload, report
+    let payload
 
     logql
       .post('/errors', (res) => {
@@ -1864,11 +1568,7 @@ describe('Request handling with Apollo Server', () => {
         return true
       })
       .reply(204)
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
+
     const query = gql`
       mutation JustDoIt($value: Int!) {
         doSomething(x: $value)
@@ -1880,7 +1580,7 @@ describe('Request handling with Apollo Server', () => {
     expect(res.status).toBe(200)
     expect(res.body.errors).toBeTruthy()
 
-    await waitFor(() => payload && report)
+    await waitFor(() => payload)
     expect(logql.pendingMocks()).toHaveLength(0)
     expect(payload).toEqual({
       schemaHash,
@@ -1937,23 +1637,10 @@ describe('Request handling with Apollo Server', () => {
         },
       ],
     })
-    expect(report).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 1,
-          duration: expect.any(Number),
-          errors: 1,
-          resolvers: [],
-          clientName: null,
-        },
-      ],
-    })
   })
 
   it('Support compressed body', async () => {
-    let payload, report
+    let payload
 
     logql
       .post('/errors', (res) => {
@@ -1961,11 +1648,7 @@ describe('Request handling with Apollo Server', () => {
         return true
       })
       .reply(204)
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
+
     const query = gql`
       mutation JustDoIt($value: Int!) {
         doSomething(x: $value) {
@@ -1981,7 +1664,7 @@ describe('Request handling with Apollo Server', () => {
     expect(res.status).toBe(400)
     expect(res.body.errors).toBeTruthy()
 
-    await waitFor(() => payload && report)
+    await waitFor(() => payload)
     expect(logql.pendingMocks()).toHaveLength(0)
     expect(payload).toEqual({
       schemaHash,
@@ -2039,23 +1722,10 @@ describe('Request handling with Apollo Server', () => {
         },
       ],
     })
-    expect(report).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 1,
-          duration: expect.any(Number),
-          errors: 1,
-          resolvers: [],
-          clientName: null,
-        },
-      ],
-    })
   })
 
   it('Send field resolve time with metrics', async () => {
-    let report, operation
+    let operation
 
     logql
       .post('/operations', (res) => {
@@ -2063,11 +1733,7 @@ describe('Request handling with Apollo Server', () => {
         return true
       })
       .reply(204)
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
+
     const query = gql`
       query UserTree($id: ID!) {
         user(id: $id) {
@@ -2090,76 +1756,8 @@ describe('Request handling with Apollo Server', () => {
     expect(res.status).toBe(200)
     expect(res.body.errors).toBeFalsy()
 
-    await waitFor(() => report && operation)
+    await waitFor(() => operation)
     expect(logql.pendingMocks()).toHaveLength(0)
-    expect(report).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 1,
-          duration: expect.any(Number),
-          errors: 0,
-          resolvers: expect.arrayContaining([
-            {
-              path: 'user',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.id',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.name',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.group',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.group.id',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.group.name',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.group.users',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.group.users.id',
-              count: 2,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.group.users.name',
-              count: 2,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-          ]),
-          clientName: null,
-        },
-      ],
-    })
     expect(operation).toEqual({
       schemaHash,
       operations: [
@@ -2185,7 +1783,7 @@ describe('Request handling with Apollo Server', () => {
   })
 
   it('Send execution profile with errors', async () => {
-    let payload, report
+    let payload
 
     logql
       .post('/errors', (res) => {
@@ -2193,11 +1791,7 @@ describe('Request handling with Apollo Server', () => {
         return true
       })
       .reply(204)
-      .post('/metrics', (res) => {
-        report = JSON.parse(decompress(res))
-        return true
-      })
-      .reply(204)
+
     const query = gql`
       query UserTree($id: ID!) {
         user(id: $id) {
@@ -2221,7 +1815,7 @@ describe('Request handling with Apollo Server', () => {
     expect(res.status).toBe(200)
     expect(res.body.errors).toBeTruthy()
 
-    await waitFor(() => payload && report)
+    await waitFor(() => payload)
     expect(logql.pendingMocks()).toHaveLength(0)
     expect(payload).toEqual({
       schemaHash,
@@ -2357,80 +1951,6 @@ describe('Request handling with Apollo Server', () => {
       ])
     )
     expect(payload.profile.resolvers).toHaveLength(13)
-    expect(report).toEqual({
-      schemaHash,
-      metrics: [
-        {
-          queryHash: createHash('sha256').update(query).digest('hex'),
-          count: 1,
-          duration: expect.any(Number),
-          errors: 1,
-          resolvers: expect.arrayContaining([
-            {
-              path: 'user',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.id',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.name',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.group',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.group.id',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.group.name',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.group.users',
-              count: 1,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.group.users.avatar',
-              count: 2,
-              duration: expect.any(Number),
-              errors: 2,
-            },
-            {
-              path: 'user.group.users.id',
-              count: 2,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-            {
-              path: 'user.group.users.name',
-              count: 2,
-              duration: expect.any(Number),
-              errors: 0,
-            },
-          ]),
-          clientName: null,
-        },
-      ],
-    })
   })
 
   // TODO: test for reportEntriesThreshold

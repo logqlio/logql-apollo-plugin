@@ -14,11 +14,6 @@ const { json, text, sendWithRetry } = require('./client')
  *
  * @typedef {(string | number)[]} Path
  * @typedef {{ path: Path; start: number; end: number; error: boolean }} Resolver
- * @typedef {{ count: number, duration: number, errors: number }} Metrics
- * @typedef {{ resolvers: Map<string, Metrics> } & Metrics} OperationMetrics
- * @typedef {Map<string, OperationMetrics>} OperationsMap
- * @typedef {Map<string | null, OperationsMap>} ClientMap
- * @typedef {{ schemaHash: string; clients: ClientMap }} Report
  * @typedef {'synced' | 'pending'} SyncStatuses
  *
  * @typedef {Object} Profile
@@ -94,32 +89,6 @@ async function sendError(syncedQueries, errors, schemaHash, profile, requestCont
   } else {
     syncedQueries.delete(queryHash)
   }
-}
-
-/**
- * @param {Report} reportMap
- * @param {Config} config
- * @param {Logger} logger
- */
-async function sendReport(reportMap, config, logger) {
-  // Don't send anything if the report is empty
-  if (reportMap.clients.size === 0) {
-    return
-  }
-
-  // Transform the report from a key/value format to array
-  const metrics = []
-  for (const [clientName, operationsMap] of reportMap.clients) {
-    for (const [queryHash, operationMetrics] of operationsMap) {
-      const resolvers = []
-      for (const [path, resolverMetrics] of operationMetrics.resolvers) {
-        resolvers.push({ ...resolverMetrics, path })
-      }
-      metrics.push({ ...operationMetrics, queryHash, clientName, resolvers })
-    }
-  }
-
-  return await sendWithRetry('metrics', json({ schemaHash: reportMap.schemaHash, metrics }), config, logger)
 }
 
 /**
@@ -206,53 +175,6 @@ function LogqlApolloPlugin(options = Object.create(null)) {
 
   /** @type {string} */
   let schemaHash
-  /** @type {Report | null} */
-  let report
-  /** @type {NodeJS.Timer | null} */
-  let reportTimer
-  let reportEntriesCount = 0
-
-  /**
-   * @param {Error} err
-   * @param {Logger} logger
-   */
-  /* istanbul ignore next */
-  function logReportingFailure(err, logger) {
-    if (config.verbose) {
-      logger.error(`[logql-plugin][ERROR][client] Failed to send metrics: ${err}`)
-    }
-  }
-
-  /**
-   * @param {Logger} logger
-   */
-  function sendReportAndStopTimer(logger) {
-    if (reportTimer) {
-      clearInterval(reportTimer)
-      reportTimer = null
-    }
-    if (report) {
-      sendReport(report, config, logger).catch((err) => logReportingFailure(err, logger))
-      report = null
-      reportEntriesCount = 0
-    }
-  }
-
-  /**
-   * @param {Logger} logger
-   */
-  function sendReportAndResetTimer(logger) {
-    sendReportAndStopTimer(logger)
-    report = { schemaHash, clients: new Map() }
-    reportTimer = setInterval(() => {
-      /* istanbul ignore else */
-      if (report) {
-        sendReport(report, config, logger).catch((err) => logReportingFailure(err, logger))
-        report = { schemaHash, clients: new Map() }
-        reportEntriesCount = 0
-      }
-    }, config.reportIntervalMs)
-  }
 
   return {
     async serverWillStart({ logger }) {
@@ -260,11 +182,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
         schemaDidLoadOrUpdate({ apiSchema, coreSupergraphSdl }) {
           const schema = coreSupergraphSdl ? coreSupergraphSdl : printSchema(apiSchema)
           schemaHash = createHash('sha256').update(schema).digest('hex')
-          sendReportAndResetTimer(logger)
           sendSchema(schema, schemaHash, config, logger)
-        },
-        async serverWillStop() {
-          sendReportAndStopTimer(logger)
         },
       }
     },
@@ -284,59 +202,6 @@ function LogqlApolloPlugin(options = Object.create(null)) {
       function requestWillBeSent(requestContext) {
         const duration = getDuration(requestStartTime)
         profile.requestEnd = duration
-
-        /* istanbul ignore if */
-        if (!report) {
-          // Added in case a request is processed after the server stopped - should never happen
-          return
-        }
-
-        const { queryHash, request } = requestContext
-        /* istanbul ignore else */
-        if (queryHash) {
-          const hasError = !!requestContext.errors
-          const clientName = request.http?.headers.get('apollographql-client-name') ?? null
-
-          if (!report.clients.has(clientName)) {
-            report.clients.set(clientName, new Map())
-          }
-
-          const client = /** @type {OperationsMap!} */ (report.clients.get(clientName))
-
-          if (!client.has(queryHash)) {
-            client.set(queryHash, {
-              count: 0,
-              duration: 0,
-              errors: 0,
-              resolvers: new Map(),
-            })
-            reportEntriesCount++
-          }
-
-          const operation = /** @type {OperationMetrics} */ (client.get(queryHash))
-
-          operation.count++
-          operation.errors += hasError ? 1 : 0
-          operation.duration += Math.round((duration - operation.duration) / operation.count)
-
-          for (const resolver of profile.resolvers) {
-            const path = pathAsString(resolver)
-            const duration = (resolver.end || getDuration(requestStartTime)) - resolver.start
-            if (!operation.resolvers.has(path)) {
-              operation.resolvers.set(path, { count: 0, duration: 0, errors: 0 })
-              reportEntriesCount++
-            }
-            const rs = /** @type {Metrics} */ (operation.resolvers.get(path))
-            rs.count++
-            rs.errors += resolver.error ? 1 : 0
-            rs.duration += Math.round((duration - rs.duration) / rs.count)
-          }
-
-          // istanbul ignore if
-          if (reportEntriesCount > config.reportEntriesThreshold) {
-            sendReportAndResetTimer(logger)
-          }
-        }
       }
 
       return {

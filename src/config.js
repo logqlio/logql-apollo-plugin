@@ -1,4 +1,6 @@
 // @ts-check
+const http = require('http')
+const https = require('https')
 const { cleanEnv, str, num, bool, url } = require('envalid')
 const { z } = require('zod')
 const { fromZodError } = require('zod-validation-error')
@@ -16,6 +18,7 @@ const ConfigSchema = z.object({
   cacheSize: z.number().min(1).default(16384),
   sampling: z.number().min(0).max(1).default(1.0),
   endpoint: z.string().url().default('https://ingress.logql.io'),
+  agent: z.instanceof(http.Agent).or(z.instanceof(https.Agent)).nullable().default(null),
 })
 
 /**

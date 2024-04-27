@@ -10,6 +10,7 @@ const { ApolloGateway } = require('@apollo/gateway')
 const { createHash, randomUUID } = require('crypto')
 const { readFileSync } = require('fs')
 const { gunzipSync } = require('zlib')
+const https = require('https')
 const request = require('supertest')
 const nock = require('nock')
 
@@ -202,6 +203,22 @@ describe('Schema reporting with Apollo Server', () => {
       .reply(204)
 
     graphqlServer = getRegularServer(schema, resolvers)
+    await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
+    await waitFor(() => schemaRegistry.pendingMocks().length === 0, 20, 1000)
+    expect(schemaRegistry.pendingMocks()).toHaveLength(0)
+  })
+
+  it('Accept a custom agent', async () => {
+    const schemaRegistry = logqlMock()
+      .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
+      .reply(204)
+
+    const agent = new https.Agent({
+      keepAlive: true,
+      keepAliveMsec: 100,
+      maxSockets: 5,
+    })
+    graphqlServer = getRegularServer(schema, resolvers, { agent })
     await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
     await waitFor(() => schemaRegistry.pendingMocks().length === 0, 20, 1000)
     expect(schemaRegistry.pendingMocks()).toHaveLength(0)

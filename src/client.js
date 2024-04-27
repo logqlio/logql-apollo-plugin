@@ -57,6 +57,7 @@ async function sendWithRetry(path, data, config, logger) {
         // @ts-ignore
         const res = await fetch(url, {
           method: 'POST',
+          agent: config.agent,
           headers: {
             'user-agent': userAgent,
             'content-encoding': 'gzip',

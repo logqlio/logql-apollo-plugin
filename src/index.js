@@ -197,6 +197,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
       /**
        * @param {RequestContext} requestContext
        */
+      // eslint-disable-next-line no-unused-vars
       function requestWillBeSent(requestContext) {
         const duration = getDuration(requestStartTime)
         profile.requestEnd = duration

@@ -33,39 +33,48 @@ function logInitError(msg) {
   }
 }
 
-/** @param {string | undefined} str */
-function Bool(str) {
-  if (str == null) return undefined
+/** @param {string} envKey */
+function Str(envKey) {
+  const str = process.env[envKey]
+  if (str == null || str === '') return undefined
+  return str
+}
+
+/** @param {string} envKey */
+function Bool(envKey) {
+  const str = process.env[envKey]
+  if (str == null || str === '') return undefined
   const num = Number(str)
   return Number.isSafeInteger(num) ? Boolean(num) : str === 'true' || str === 't'
 }
 
-/** @param {string | undefined} str */
-function Num(str) {
-  if (str == null) return undefined
+/** @param {string} envKey */
+function Num(envKey) {
+  const str = process.env[envKey]
+  if (str == null || str === '') return undefined
   const num = Number(str)
   if (Number.isNaN(num)) {
-    logInitError(`Invalid environment variable: Expected a number, got ${str}`)
+    logInitError(`Invalid environment value for ${envKey}: Expected a number, got "${str}"`)
   }
   return num
 }
 
 function loadEnv() {
   const config = {
-    apiKey: process.env.LOGQL_API_KEY,
-    environment: process.env.LOGQL_ENVIRONMENT,
-    endpoint: process.env.LOGQL_ENDPOINT,
+    apiKey: Str('LOGQL_API_KEY'),
+    environment: Str('LOGQL_ENVIRONMENT'),
+    endpoint: Str('LOGQL_ENDPOINT'),
 
-    sendVariables: Bool(process.env.LOGQL_SEND_VARIABLES),
-    sendHeaders: Bool(process.env.LOGQL_SEND_HEADERS),
-    runInTests: Bool(process.env.LOGQL_RUN_IN_TESTS),
-    verbose: Bool(process.env.LOGQL_VERBOSE),
+    sendVariables: Bool('LOGQL_SEND_VARIABLES'),
+    sendHeaders: Bool('LOGQL_SEND_HEADERS'),
+    runInTests: Bool('LOGQL_RUN_IN_TESTS'),
+    verbose: Bool('LOGQL_VERBOSE'),
 
-    timeout: Num(process.env.LOGQL_TIMEOUT),
-    reportIntervalMs: Num(process.env.LOGQL_REPORT_INTERVAL_MS),
-    reportEntriesThreshold: Num(process.env.LOGQL_REPORT_ENTRIES_THRESHOLD),
-    cacheSize: Num(process.env.LOGQL_CACHE_SIZE),
-    sampling: Num(process.env.LOGQL_SAMPLING),
+    timeout: Num('LOGQL_TIMEOUT'),
+    reportIntervalMs: Num('LOGQL_REPORT_INTERVAL_MS'),
+    reportEntriesThreshold: Num('LOGQL_REPORT_ENTRIES_THRESHOLD'),
+    cacheSize: Num('LOGQL_CACHE_SIZE'),
+    sampling: Num('LOGQL_SAMPLING'),
   }
   return config
 }

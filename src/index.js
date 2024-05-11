@@ -153,17 +153,15 @@ function isPersistedQueryNotFound({ request, source, errors }) {
 
 /**
  * @param {Partial<Config>} options
- * @returns {import('@apollo/server').ApolloServerPlugin}
+ * @returns {import('@apollo/server').ApolloServerPlugin<*>}
  */
 function LogqlApolloPlugin(options = Object.create(null)) {
-  const maybeConfig = getConfig(options)
+  const config = getConfig(options)
 
   // Disable if config was not loaded
-  if (maybeConfig == null) {
+  if (config == null) {
     return {}
   }
-
-  const config = maybeConfig
 
   // Disable in tests by default
   if (process.env.NODE_ENV === 'test' && !config.runInTests) {

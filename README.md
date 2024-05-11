@@ -17,23 +17,19 @@ yarn add @logql/apollo-plugin
 ## Usage
 
 ```js
-const Logql = require('@logql/apollo-plugin')
+const logql = require('@logql/apollo-plugin')
 
 // ...
+
+const logqlPlugin = logql({ apiKey: 'logql:your-api-key' })
+
+// or using environment variables for config:
+
+const logqlPlugin = logql.fromEnv()
 
 const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
-  plugins: [
-    Logql({
-      apiKey: 'logql:your-api-key,
-    }),
-  ],
+  plugins: [logqlPlugin],
 })
-```
-
-Or using environment variables:
-
-```sh
-LOGQL_API_KEY=logql:your-api-key node .
 ```

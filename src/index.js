@@ -3,7 +3,7 @@ const { createHash } = require('crypto')
 const { printSchema, responsePathAsArray } = require('graphql')
 const { LRUCache } = require('lru-cache')
 
-const { getConfig } = require('./config')
+const { getConfig, loadEnv } = require('./config')
 const { json, text, sendWithRetry } = require('./client')
 
 /**
@@ -252,6 +252,10 @@ function LogqlApolloPlugin(options = Object.create(null)) {
       }
     },
   }
+}
+
+LogqlApolloPlugin.fromEnv = function fromEnv() {
+  return LogqlApolloPlugin(loadEnv())
 }
 
 module.exports = LogqlApolloPlugin

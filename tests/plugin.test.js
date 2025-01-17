@@ -349,8 +349,10 @@ describe('Request handling with Apollo Federation', () => {
     const res = await request(graphqlServerUrl)
       .post('')
       .type('application/json')
-      .set('apollographql-client-name', 'Web')
-      .set('apollographql-client-version', '2.0.1')
+      .set('graphql-client-name', 'Web')
+      .set('graphql-client-version', '2.0.1')
+      .set('apollographql-client-name', 'Ignored')
+      .set('apollographql-client-version', 'Ignored')
       .send({ query })
 
     expect(res.status).toBe(400)
@@ -372,8 +374,10 @@ describe('Request handling with Apollo Federation', () => {
           'accept-encoding': 'gzip, deflate',
           'content-type': 'application/json',
           'content-length': expect.any(String),
-          'apollographql-client-name': 'Web',
-          'apollographql-client-version': '2.0.1',
+          'graphql-client-name': 'Web',
+          'graphql-client-version': '2.0.1',
+          'apollographql-client-name': 'Ignored',
+          'apollographql-client-version': 'Ignored',
           connection: 'close',
         },
       },

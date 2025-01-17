@@ -39,6 +39,22 @@ async function sendSchema(schema, schemaHash, config, logger) {
 }
 
 /**
+ * @param {import('@apollo/server').HeaderMap | undefined} headers
+ */
+function getClient(headers) {
+  if (!headers) {
+    return {}
+  }
+  const name = headers.has('graphql-client-name')
+    ? headers.get('graphql-client-name')
+    : headers.get('apollographql-client-name')
+  const version = headers.get('graphql-client-version')
+    ? headers.get('graphql-client-version')
+    : headers.get('apollographql-client-version')
+  return { name, version }
+}
+
+/**
  * @param {LRUCache<string, SyncStatuses>} syncedQueries
  * @param {readonly GraphQLError[] | undefined} errors
  * @param {string} schemaHash
@@ -55,10 +71,7 @@ async function sendError(syncedQueries, errors, schemaHash, profile, requestCont
   const headers = sendHeaders && http?.headers ? Object.fromEntries(http.headers) : Object.create(null)
   const payload = {
     schemaHash,
-    client: {
-      name: http?.headers.get('apollographql-client-name'),
-      version: http?.headers.get('apollographql-client-version'),
-    },
+    client: getClient(http?.headers),
     request: {
       headers,
       method: http?.method,

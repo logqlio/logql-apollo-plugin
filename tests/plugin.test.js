@@ -265,6 +265,89 @@ describe('Request handling with Apollo Federation', () => {
     //nock.recorder.clear()
   })
 
+  it('handle non-http requests', async () => {
+    let payload
+
+    logql
+      .post('/errors', (res) => {
+        payload = JSON.parse(decompress(res))
+        return true
+      })
+      .reply(204)
+
+    const query = gql`
+      query Users {
+        users {
+          id
+        }
+      }
+    `
+
+    const { body } = await graphqlServer.executeOperation({
+      query,
+      operationName: 'Users',
+      variables: {},
+    })
+
+    expect(body.kind).toBe('single')
+    expect(body.singleResult).toEqual({
+      errors: [
+        {
+          extensions: {
+            code: 'GRAPHQL_VALIDATION_FAILED',
+          },
+          locations: [
+            {
+              column: 9,
+              line: 3,
+            },
+          ],
+          message: 'Cannot query field "users" on type "Query".',
+        },
+      ],
+    })
+
+    await waitFor(() => payload)
+    expect(logql.pendingMocks()).toHaveLength(0)
+    expect(payload).toEqual({
+      schemaHash,
+      client: {},
+      request: {
+        headers: {},
+        variables: {},
+      },
+      operation: {
+        source: query,
+        queryHash: createHash('sha256').update(query).digest('hex'),
+      },
+      profile: {
+        parsingEnd: expect.any(Number),
+        parsingStart: expect.any(Number),
+        receivedAt: expect.any(String),
+        resolvers: [],
+        requestEnd: expect.any(Number),
+        validationEnd: expect.any(Number),
+        validationStart: expect.any(Number),
+      },
+      metrics: {
+        startHrTime: [expect.any(Number), expect.any(Number)],
+        persistedQueryHit: false,
+        persistedQueryRegister: false,
+      },
+      errors: [
+        {
+          message: 'Cannot query field "users" on type "Query".',
+          locations: [{ line: 3, column: 9 }],
+          extensions: {
+            http: { status: 400, headers: {} },
+            code: 'GRAPHQL_VALIDATION_FAILED',
+          },
+          stackTrace: expect.stringMatching('GraphQLError: Cannot query field "users" on type "Query".'),
+        },
+      ],
+    })
+  })
+
   it('Send errors when query is malformed (GRAPHQL_PARSE_FAILED)', async () => {
     let payload
 
@@ -349,8 +432,10 @@ describe('Request handling with Apollo Federation', () => {
     const res = await request(graphqlServerUrl)
       .post('')
       .type('application/json')
-      .set('apollographql-client-name', 'Web')
-      .set('apollographql-client-version', '2.0.1')
+      .set('graphql-client-name', 'Web')
+      .set('graphql-client-version', '2.0.1')
+      .set('apollographql-client-name', 'Ignored')
+      .set('apollographql-client-version', 'Ignored')
       .send({ query })
 
     expect(res.status).toBe(400)
@@ -372,8 +457,10 @@ describe('Request handling with Apollo Federation', () => {
           'accept-encoding': 'gzip, deflate',
           'content-type': 'application/json',
           'content-length': expect.any(String),
-          'apollographql-client-name': 'Web',
-          'apollographql-client-version': '2.0.1',
+          'graphql-client-name': 'Web',
+          'graphql-client-version': '2.0.1',
+          'apollographql-client-name': 'Ignored',
+          'apollographql-client-version': 'Ignored',
           connection: 'close',
         },
       },

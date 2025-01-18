@@ -31,6 +31,7 @@
   "devDependencies": {
     "@apollo/gateway": "^2.2.2",
     "@apollo/server": "^4.1.1",
+    "@apollo/server-plugin-response-cache": "^4.1.4",
     "@eslint/js": "^9.1.1",
     "eslint": "^9.1.1",
     "eslint-config-prettier": "^9.1.0",

@@ -5,6 +5,9 @@ process.env.APOLLO_SCHEMA_REPORTING = false
 
 const { ApolloServer } = require('@apollo/server')
 const { startStandaloneServer } = require('@apollo/server/standalone')
+const { ApolloServerPluginCacheControl } = require('@apollo/server/plugin/cacheControl')
+const responseCachePlugin = require('@apollo/server-plugin-response-cache')
+const { cacheControlFromInfo } = require('@apollo/cache-control-types')
 const { ApolloGateway } = require('@apollo/gateway')
 const { createHash, randomUUID } = require('crypto')
 const { readFileSync } = require('fs')
@@ -48,12 +51,12 @@ function getConfiguredPlugin(config) {
   })
 }
 
-function getRegularServer(typeDefs, resolvers, config = {}) {
+function getRegularServer(typeDefs, resolvers, config = {}, plugins = []) {
   return new ApolloServer({
     logger,
     typeDefs,
     resolvers,
-    plugins: [getConfiguredPlugin(config)],
+    plugins: [...plugins, getConfiguredPlugin(config)],
   })
 }
 
@@ -1282,7 +1285,9 @@ describe('Request handling with Apollo Server', () => {
   const resolvers = {
     Query: {
       hello: () => 'World!',
-      async user(_, { id }) {
+      async user(_, { id }, ctx, info) {
+        const cacheControl = cacheControlFromInfo(info)
+        cacheControl.setCacheHint({ maxAge: 6, scope: 'PUBLIC' })
         await sleep(200)
         return { id, name: 'Bob' }
       },
@@ -1332,7 +1337,14 @@ describe('Request handling with Apollo Server', () => {
     logql = logqlMock(endpoint)
       .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
       .reply(204)
-    graphqlServer = getRegularServer(schema, resolvers, { sampling: 0.1, endpoint })
+    const plugins = [
+      ApolloServerPluginCacheControl({
+        defaultMaxAge: 20, // seconds
+        calculateHttpHeaders: true,
+      }),
+      responseCachePlugin.default(),
+    ]
+    graphqlServer = getRegularServer(schema, resolvers, { sampling: 0.1, endpoint }, plugins)
     const { url } = await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
     graphqlServerUrl = url
     //nock.recorder.rec()
@@ -1406,6 +1418,7 @@ describe('Request handling with Apollo Server', () => {
       persistedQueryHit: false,
       persistedQueryRegister: true,
       captureTraces: true,
+      responseCacheHit: false,
     })
 
     payload = null
@@ -1430,10 +1443,11 @@ describe('Request handling with Apollo Server', () => {
       persistedQueryHit: true,
       persistedQueryRegister: false,
       captureTraces: true,
+      responseCacheHit: true,
     })
   })
 
-  it('Send request when sampled and not error', async () => {
+  it('send request when sampled and not error', async () => {
     let payload
 
     logql
@@ -1499,11 +1513,12 @@ describe('Request handling with Apollo Server', () => {
         persistedQueryHit: false,
         persistedQueryRegister: false,
         captureTraces: true,
+        responseCacheHit: false,
       },
     })
   })
 
-  it('Send errors when query is malformed (GRAPHQL_PARSE_FAILED)', async () => {
+  it('send errors when query is malformed (GRAPHQL_PARSE_FAILED)', async () => {
     let payload
 
     logql
@@ -1644,6 +1659,7 @@ describe('Request handling with Apollo Server', () => {
         startHrTime: [expect.any(Number), expect.any(Number)],
         persistedQueryHit: false,
         persistedQueryRegister: false,
+        responseCacheHit: false,
       },
       errors: [
         {
@@ -1722,6 +1738,7 @@ describe('Request handling with Apollo Server', () => {
         startHrTime: [expect.any(Number), expect.any(Number)],
         persistedQueryHit: false,
         persistedQueryRegister: false,
+        responseCacheHit: false,
       },
       errors: [
         {
@@ -1957,6 +1974,7 @@ describe('Request handling with Apollo Server', () => {
         startHrTime: [expect.any(Number), expect.any(Number)],
         persistedQueryHit: false,
         persistedQueryRegister: false,
+        responseCacheHit: false,
       },
       errors: [0, 1].map((index) => ({
         message: 'Failed to load avatar: file does not exists',
@@ -2054,6 +2072,64 @@ describe('Request handling with Apollo Server', () => {
       ])
     )
     expect(payload.profile.resolvers).toHaveLength(13)
+  })
+
+  it('Send caching info', async () => {
+    const payloads = []
+
+    logql
+      .post('/errors', (res) => {
+        payloads.push(JSON.parse(decompress(res)))
+        return true
+      })
+      .twice()
+      .reply(204)
+
+    const query = gql`
+      query UserTree($id: ID!) {
+        user(id: $id) {
+          id
+          name
+          group {
+            id
+            name
+          }
+        }
+      }
+    `
+
+    jest.spyOn(global.Math, 'random').mockReturnValue(0.02)
+    const variables = { id: 5 }
+
+    const res = await request(graphqlServerUrl).post('').type('application/json').send({ query, variables })
+
+    expect(res.status).toBe(200)
+    expect(res.body.errors).toBeFalsy()
+
+    await waitFor(() => payloads.length)
+    expect(logql.pendingMocks()).toHaveLength(1)
+    expect(payloads[0].operation.source).toEqual(query)
+    expect(payloads[0].metrics).toEqual({
+      captureTraces: true,
+      startHrTime: [expect.any(Number), expect.any(Number)],
+      persistedQueryHit: false,
+      persistedQueryRegister: false,
+      responseCacheHit: false,
+    })
+
+    const cached = await request(graphqlServerUrl).post('').type('application/json').send({ query, variables })
+    expect(cached.status).toBe(200)
+    expect(cached.body.errors).toBeFalsy()
+
+    await waitFor(() => payloads.length > 1)
+    expect(logql.pendingMocks()).toHaveLength(0)
+    expect(payloads[1].metrics).toEqual({
+      captureTraces: true,
+      startHrTime: [expect.any(Number), expect.any(Number)],
+      persistedQueryHit: false,
+      persistedQueryRegister: false,
+      responseCacheHit: true,
+    })
   })
 
   // TODO: test for reportEntriesThreshold

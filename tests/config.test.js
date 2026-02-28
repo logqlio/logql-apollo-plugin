@@ -90,6 +90,7 @@ describe('Config Validation', () => {
       sampling: 0.9,
 
       agent: null,
+      userId: null,
     })
   })
 

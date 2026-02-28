@@ -1344,8 +1344,14 @@ describe('Request handling with Apollo Server', () => {
       }),
       responseCachePlugin.default(),
     ]
-    graphqlServer = getRegularServer(schema, resolvers, { sampling: 0.1, endpoint }, plugins)
-    const { url } = await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
+    const context = async () => ({ user: { userId: 1234 } })
+    graphqlServer = getRegularServer(
+      schema,
+      resolvers,
+      { sampling: 0.1, endpoint, userId: (ctx) => Promise.resolve(ctx.user.userId) },
+      plugins
+    )
+    const { url } = await startStandaloneServer(graphqlServer, { listen: { port: 0 }, context })
     graphqlServerUrl = url
     //nock.recorder.rec()
   })
@@ -1515,6 +1521,7 @@ describe('Request handling with Apollo Server', () => {
         captureTraces: true,
         responseCacheHit: false,
       },
+      userId: '1234',
     })
   })
 
@@ -1589,6 +1596,7 @@ describe('Request handling with Apollo Server', () => {
           stackTrace: expect.stringMatching('GraphQLError: Syntax Error: Expected Name, found "}".'),
         },
       ],
+      userId: '1234',
     })
   })
 
@@ -1675,6 +1683,7 @@ describe('Request handling with Apollo Server', () => {
           stackTrace: expect.stringMatching('Error: Failed to do something!'),
         },
       ],
+      userId: '1234',
     })
   })
 
@@ -1756,6 +1765,7 @@ describe('Request handling with Apollo Server', () => {
           stackTrace: expect.stringMatching('GraphQLError: Int cannot represent non-integer value: "not a number"'),
         },
       ],
+      userId: '1234',
     })
   })
 
@@ -1841,6 +1851,7 @@ describe('Request handling with Apollo Server', () => {
           ),
         },
       ],
+      userId: '1234',
     })
   })
 
@@ -1988,6 +1999,7 @@ describe('Request handling with Apollo Server', () => {
         extensions: {},
         stackTrace: expect.stringMatching('Error: Failed to load avatar: file does not exists'),
       })),
+      userId: '1234',
     })
     expect(payload.profile.resolvers).toEqual(
       expect.arrayContaining([

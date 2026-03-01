@@ -22,7 +22,7 @@ const { compress } = require('../src/client')
 const noop = () => {}
 const logger = { debug: noop, info: noop, warn: noop, error: noop }
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-const waitFor = async (predicate, ms = 100, timeout = 4000) => {
+const waitFor = async (predicate, ms = 20, timeout = 4000) => {
   for (let attempt = 0; attempt * ms < timeout; ++attempt) {
     if (predicate()) {
       return true
@@ -1288,7 +1288,7 @@ describe('Request handling with Apollo Server', () => {
       async user(_, { id }, ctx, info) {
         const cacheControl = cacheControlFromInfo(info)
         cacheControl.setCacheHint({ maxAge: 6, scope: 'PUBLIC' })
-        await sleep(200)
+        await sleep(10)
         return { id, name: 'Bob' }
       },
     },
@@ -1297,17 +1297,17 @@ describe('Request handling with Apollo Server', () => {
     },
     User: {
       async group(user) {
-        await sleep(300)
+        await sleep(20)
         return { id: '9', name: 'admin' }
       },
       async avatar(user) {
-        await sleep(100)
+        await sleep(10)
         return Promise.reject(Error('Failed to load avatar: file does not exists'))
       },
     },
     Group: {
       async users(group) {
-        await sleep(100)
+        await sleep(10)
         return [
           { id: '1', name: 'Jane' },
           { id: '3', name: 'Joe' },

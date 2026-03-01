@@ -57,13 +57,13 @@ async function sendWithRetry(path, data, config, logger) {
         // @ts-ignore
         const res = await fetch(url, {
           method: 'POST',
-          agent: config.agent,
+          agent: config.agent || false,
           headers: {
             'user-agent': userAgent,
             'content-encoding': 'gzip',
             'content-type': data.contentType,
             'x-request-id': requestId,
-            'x-attempt-count': attempt,
+            'x-attempt-count': `${attempt}`,
             'x-api-key': apiKey,
             'x-environment': environment,
             'x-plugin-name': plugin.name,

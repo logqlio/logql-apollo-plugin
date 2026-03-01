@@ -22,6 +22,8 @@ const ConfigSchema = z.object({
   sampling: z.number().min(0).max(1).default(1.0),
 
   agent: z.instanceof(http.Agent).or(z.instanceof(https.Agent)).nullable().default(null),
+
+  userId: z.function().nullable().default(null),
 })
 
 /** @typedef {z.infer<typeof ConfigSchema>} Config */

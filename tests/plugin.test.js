@@ -22,7 +22,7 @@ const { compress } = require('../src/client')
 const noop = () => {}
 const logger = { debug: noop, info: noop, warn: noop, error: noop }
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-const waitFor = async (predicate, ms = 100, timeout = 4000) => {
+const waitFor = async (predicate, ms = 20, timeout = 4000) => {
   for (let attempt = 0; attempt * ms < timeout; ++attempt) {
     if (predicate()) {
       return true
@@ -1288,7 +1288,7 @@ describe('Request handling with Apollo Server', () => {
       async user(_, { id }, ctx, info) {
         const cacheControl = cacheControlFromInfo(info)
         cacheControl.setCacheHint({ maxAge: 6, scope: 'PUBLIC' })
-        await sleep(200)
+        await sleep(10)
         return { id, name: 'Bob' }
       },
     },
@@ -1297,17 +1297,17 @@ describe('Request handling with Apollo Server', () => {
     },
     User: {
       async group(user) {
-        await sleep(300)
+        await sleep(20)
         return { id: '9', name: 'admin' }
       },
       async avatar(user) {
-        await sleep(100)
+        await sleep(10)
         return Promise.reject(Error('Failed to load avatar: file does not exists'))
       },
     },
     Group: {
       async users(group) {
-        await sleep(100)
+        await sleep(10)
         return [
           { id: '1', name: 'Jane' },
           { id: '3', name: 'Joe' },
@@ -1344,8 +1344,14 @@ describe('Request handling with Apollo Server', () => {
       }),
       responseCachePlugin.default(),
     ]
-    graphqlServer = getRegularServer(schema, resolvers, { sampling: 0.1, endpoint }, plugins)
-    const { url } = await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
+    const context = async () => ({ user: { userId: 1234 } })
+    graphqlServer = getRegularServer(
+      schema,
+      resolvers,
+      { sampling: 0.1, endpoint, userId: (ctx) => Promise.resolve(ctx.user.userId) },
+      plugins
+    )
+    const { url } = await startStandaloneServer(graphqlServer, { listen: { port: 0 }, context })
     graphqlServerUrl = url
     //nock.recorder.rec()
   })
@@ -1515,6 +1521,7 @@ describe('Request handling with Apollo Server', () => {
         captureTraces: true,
         responseCacheHit: false,
       },
+      userId: '1234',
     })
   })
 
@@ -1589,6 +1596,7 @@ describe('Request handling with Apollo Server', () => {
           stackTrace: expect.stringMatching('GraphQLError: Syntax Error: Expected Name, found "}".'),
         },
       ],
+      userId: '1234',
     })
   })
 
@@ -1675,6 +1683,7 @@ describe('Request handling with Apollo Server', () => {
           stackTrace: expect.stringMatching('Error: Failed to do something!'),
         },
       ],
+      userId: '1234',
     })
   })
 
@@ -1756,6 +1765,7 @@ describe('Request handling with Apollo Server', () => {
           stackTrace: expect.stringMatching('GraphQLError: Int cannot represent non-integer value: "not a number"'),
         },
       ],
+      userId: '1234',
     })
   })
 
@@ -1841,6 +1851,7 @@ describe('Request handling with Apollo Server', () => {
           ),
         },
       ],
+      userId: '1234',
     })
   })
 
@@ -1988,6 +1999,7 @@ describe('Request handling with Apollo Server', () => {
         extensions: {},
         stackTrace: expect.stringMatching('Error: Failed to load avatar: file does not exists'),
       })),
+      userId: '1234',
     })
     expect(payload.profile.resolvers).toEqual(
       expect.arrayContaining([
@@ -2133,4 +2145,61 @@ describe('Request handling with Apollo Server', () => {
   })
 
   // TODO: test for reportEntriesThreshold
+})
+
+describe('extractUserId timeout', () => {
+  const { schema, schemaHash } = loadSchema('./tests/graph-test.graphql')
+  const resolvers = {
+    Query: { hello: () => 'World!' },
+  }
+  let graphqlServer
+  let graphqlServerUrl
+  let logql
+
+  beforeEach(async () => {
+    const endpoint = `https://fake-logql/${randomUUID()}`
+    logql = logqlMock(endpoint)
+      .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
+      .reply(204)
+    graphqlServer = getRegularServer(schema, resolvers, {
+      endpoint,
+      timeout: 50,
+      userId: () => new Promise((resolve) => setTimeout(() => resolve('user-1'), 500)),
+      verbose: true,
+    })
+    const { url } = await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
+    graphqlServerUrl = url
+  })
+
+  afterEach(async () => {
+    jest.spyOn(global.Math, 'random').mockRestore()
+    if (graphqlServer) {
+      await graphqlServer.stop()
+      graphqlServer = null
+    }
+    nock.abortPendingRequests()
+  })
+
+  it('falls back to empty string when extractUserId times out', async () => {
+    jest.spyOn(global.Math, 'random').mockReturnValue(0)
+
+    let payload
+    logql
+      .post('/errors', (res) => {
+        payload = JSON.parse(decompress(res))
+        return true
+      })
+      .reply(204)
+
+    const query = gql`
+      query {
+        hello
+      }
+    `
+    const res = await request(graphqlServerUrl).post('').type('application/json').send({ query })
+    expect(res.status).toBe(200)
+
+    await waitFor(() => payload != null)
+    expect(payload.userId).toBe('')
+  })
 })

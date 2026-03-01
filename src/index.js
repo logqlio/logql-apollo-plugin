@@ -55,6 +55,36 @@ function getClient(headers) {
 }
 
 /**
+ * @param {Function} extractUserId
+ * @param {RequestContext} requestContext
+ * @param {Config} config
+ * @param {Logger} logger
+ */
+async function getUserId(extractUserId, requestContext, config, logger) {
+  try {
+    const headers = requestContext.request.http?.headers
+    const timeoutPromise = new Promise((_, reject) => {
+      const timer = setTimeout(() => reject(new Error('extractUserId timed out')), config.timeout)
+      timer.unref()
+    })
+    const userId = await Promise.race([extractUserId(requestContext.contextValue, headers, requestContext), timeoutPromise])
+    switch (typeof userId) {
+      case 'string':
+      case 'number':
+      case 'bigint':
+        return String(userId)
+      default:
+        return ''
+    }
+  } catch (err) {
+    if (config.verbose) {
+      logger.error(`[logql-plugin][ERROR][config] Cannot get userId from context - error: ${err}`)
+    }
+    return ''
+  }
+}
+
+/**
  * @param {LRUCache<string, SyncStatuses>} syncedQueries
  * @param {readonly GraphQLError[] | undefined} errors
  * @param {string} schemaHash
@@ -94,6 +124,10 @@ async function sendError(syncedQueries, errors, schemaHash, profile, requestCont
         stackTrace: err.stack,
         path: err.path,
       })),
+  }
+
+  if (config.userId) {
+    payload.userId = await getUserId(config.userId, requestContext, config, logger)
   }
 
   const success = await sendWithRetry('errors', json(payload), config, logger)
@@ -139,6 +173,18 @@ async function sendOperation(syncedQueries, schemaHash, profile, requestContext,
     } else {
       syncedQueries.delete(queryHash)
     }
+  }
+}
+
+/**
+ * @param {Error} err
+ * @param {string} action
+ * @param {Config} config
+ * @param {Logger} logger
+ */
+function handleError(err, action, config, logger) {
+  if (config.verbose) {
+    logger.error(`[logql-plugin][ERROR][collection] Failed to collect: ${action} - error: ${err}`)
   }
 }
 
@@ -193,7 +239,7 @@ function LogqlApolloPlugin(options = Object.create(null)) {
         schemaDidLoadOrUpdate({ apiSchema, coreSupergraphSdl }) {
           const schema = coreSupergraphSdl ? coreSupergraphSdl : printSchema(apiSchema)
           schemaHash = createHash('sha256').update(schema).digest('hex')
-          sendSchema(schema, schemaHash, config, logger)
+          sendSchema(schema, schemaHash, config, logger).catch((err) => handleError(err, 'schema', config, logger))
         },
       }
     },
@@ -256,9 +302,13 @@ function LogqlApolloPlugin(options = Object.create(null)) {
           }
           requestWillBeSent(requestContext)
           if (requestContext.errors || Math.random() < config.sampling) {
-            sendError(syncedQueries, requestContext.errors, schemaHash, profile, requestContext, config, logger)
+            sendError(syncedQueries, requestContext.errors, schemaHash, profile, requestContext, config, logger).catch(
+              (err) => handleError(err, 'error', config, logger)
+            )
           } else {
-            sendOperation(syncedQueries, schemaHash, profile, requestContext, config, logger)
+            sendOperation(syncedQueries, schemaHash, profile, requestContext, config, logger).catch((err) =>
+              handleError(err, 'operation', config, logger)
+            )
           }
         },
       }

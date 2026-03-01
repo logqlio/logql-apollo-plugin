@@ -35,8 +35,5 @@ jobs:
         with:
           cache: yarn
           node-version-file: '.node-version'
-          registry-url: 'https://registry.npmjs.org'
       - run: yarn install --frozen-lockfile --non-interactive
-      - run: yarn publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: npm publish --access public --provenance

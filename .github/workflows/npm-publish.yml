@@ -8,11 +8,13 @@ jobs:
   test:
     name: Test before publish
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           cache: yarn
           node-version-file: '.node-version'
@@ -22,16 +24,16 @@ jobs:
   publish:
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           cache: yarn
           node-version-file: '.node-version'
-          registry-url: 'https://registry.npmjs.org'
       - run: yarn install --frozen-lockfile --non-interactive
-      - run: yarn publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: npm publish --access public --provenance

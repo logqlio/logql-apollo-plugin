@@ -63,7 +63,11 @@ function getClient(headers) {
 async function getUserId(extractUserId, requestContext, config, logger) {
   try {
     const headers = requestContext.request.http?.headers
-    const userId = await extractUserId(requestContext.contextValue, headers, requestContext)
+    const timeoutPromise = new Promise((_, reject) => {
+      const timer = setTimeout(() => reject(new Error('extractUserId timed out')), config.timeout)
+      timer.unref()
+    })
+    const userId = await Promise.race([extractUserId(requestContext.contextValue, headers, requestContext), timeoutPromise])
     switch (typeof userId) {
       case 'string':
       case 'number':

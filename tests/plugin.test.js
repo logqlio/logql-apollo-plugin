@@ -2146,3 +2146,60 @@ describe('Request handling with Apollo Server', () => {
 
   // TODO: test for reportEntriesThreshold
 })
+
+describe('extractUserId timeout', () => {
+  const { schema, schemaHash } = loadSchema('./tests/graph-test.graphql')
+  const resolvers = {
+    Query: { hello: () => 'World!' },
+  }
+  let graphqlServer
+  let graphqlServerUrl
+  let logql
+
+  beforeEach(async () => {
+    const endpoint = `https://fake-logql/${randomUUID()}`
+    logql = logqlMock(endpoint)
+      .post(`/schemas/${schemaHash}`, (data) => decompress(data) === schema)
+      .reply(204)
+    graphqlServer = getRegularServer(schema, resolvers, {
+      endpoint,
+      timeout: 50,
+      userId: () => new Promise((resolve) => setTimeout(() => resolve('user-1'), 500)),
+      verbose: true,
+    })
+    const { url } = await startStandaloneServer(graphqlServer, { listen: { port: 0 } })
+    graphqlServerUrl = url
+  })
+
+  afterEach(async () => {
+    jest.spyOn(global.Math, 'random').mockRestore()
+    if (graphqlServer) {
+      await graphqlServer.stop()
+      graphqlServer = null
+    }
+    nock.abortPendingRequests()
+  })
+
+  it('falls back to empty string when extractUserId times out', async () => {
+    jest.spyOn(global.Math, 'random').mockReturnValue(0)
+
+    let payload
+    logql
+      .post('/errors', (res) => {
+        payload = JSON.parse(decompress(res))
+        return true
+      })
+      .reply(204)
+
+    const query = gql`
+      query {
+        hello
+      }
+    `
+    const res = await request(graphqlServerUrl).post('').type('application/json').send({ query })
+    expect(res.status).toBe(200)
+
+    await waitFor(() => payload != null)
+    expect(payload.userId).toBe('')
+  })
+})

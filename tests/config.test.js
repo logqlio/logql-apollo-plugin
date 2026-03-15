@@ -89,7 +89,8 @@ describe('Config Validation', () => {
 
       sampling: 0.9,
 
-      agent: null,
+      fetchFn: expect.any(Function),
+
       userId: null,
     })
   })

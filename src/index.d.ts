@@ -1,6 +1,7 @@
 import type { ApolloServerPlugin, BaseContext } from '@apollo/server'
-import type * as http from 'http'
-import type * as https from 'https'
+
+/** A fetch-compatible function. Defaults to `globalThis.fetch`. */
+export type FetchFunction = (url: string, init?: RequestInit) => Promise<Pick<Response, 'status'>>
 
 export interface LogqlOptions<TContext = Record<string, unknown>> {
   apiKey: string
@@ -19,7 +20,7 @@ export interface LogqlOptions<TContext = Record<string, unknown>> {
 
   sampling?: number
 
-  agent?: http.Agent | https.Agent | null
+  fetchFn?: FetchFunction
 
   userId?: ((context: TContext, headers: unknown, requestContext: unknown) => unknown) | null
 }

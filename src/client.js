@@ -4,11 +4,10 @@ const { gzip } = require('zlib')
 const { randomUUID } = require('crypto')
 const os = require('os')
 const retry = require('async-retry')
-const fetch = require('node-fetch')
 
 const plugin = require('../package.json')
 
-const compress = promisify(gzip)
+const compress = /** @type {(data: string) => Promise<Buffer<ArrayBuffer>>} */ (promisify(gzip))
 
 const userAgent = `logql-apollo-plugin; node ${process.version}; ${os.platform()} ${os.release()}`
 
@@ -54,10 +53,9 @@ async function sendWithRetry(path, data, config, logger) {
 
     await retry(
       async (bail, attempt) => {
-        // @ts-ignore
-        const res = await fetch(url, {
+        const res = await config.fetchFn(url, {
           method: 'POST',
-          agent: config.agent || false,
+          signal: AbortSignal.timeout(timeout),
           headers: {
             'user-agent': userAgent,
             'content-encoding': 'gzip',
@@ -70,7 +68,6 @@ async function sendWithRetry(path, data, config, logger) {
             'x-plugin-version': plugin.version,
           },
           body: compressed,
-          timeout,
         })
 
         if (res.status === 401 || res.status === 403) {

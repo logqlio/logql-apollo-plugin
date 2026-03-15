@@ -1700,7 +1700,7 @@ describe('Request handling with Apollo Server', () => {
     const variables = { value: 'not a number' }
     const res = await request(graphqlServerUrl).post('').type('application/json').send({ query, variables })
 
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(400)
     expect(res.body.errors).toBeTruthy()
 
     await waitFor(() => payload)

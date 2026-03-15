@@ -93,7 +93,7 @@ function getConfig(options) {
     return maybeConfig.data
   }
 
-  logInitError(`Invalid options: ${z.prettifyError(maybeConfig.error)}`)
+  logInitError(z.prettifyError(maybeConfig.error))
 }
 
 module.exports = { getConfig, loadEnv }

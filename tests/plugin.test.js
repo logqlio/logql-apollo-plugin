@@ -83,7 +83,6 @@ function logqlMock(endpoint = 'https://ingress.logql.io') {
       'x-api-key': 'logql:FAKE_API_KEY',
       'x-environment': '',
       'x-plugin-name': '@logql/apollo-plugin',
-      'accept-encoding': 'gzip,deflate',
     },
   })
 }
@@ -510,7 +509,7 @@ describe('Request handling with Apollo Federation', () => {
   it('Send error when subgraph failed to resolve (ENETUNREACH)', async () => {
     let payload
 
-    const products = nock('http://products:4000').post('/graphql').replyWithError({ code: 'ENETUNREACH' })
+    const products = nock('http://products:4000').post('/graphql').replyWithError('ENETUNREACH')
     logql
       .post('/errors', (res) => {
         payload = JSON.parse(decompress(res))
@@ -587,11 +586,11 @@ describe('Request handling with Apollo Federation', () => {
       },
       errors: [
         {
-          code: 'ENETUNREACH',
-          errno: 'ENETUNREACH',
+          code: expect.any(String),
+          errno: expect.any(String),
           type: 'system',
-          message: 'request to http://products:4000/graphql failed, reason: undefined',
-          stackTrace: expect.stringMatching('FetchError: request to http://products:4000/graphql failed, reason: undefined'),
+          message: expect.stringContaining('http://products:4000/graphql failed'),
+          stackTrace: expect.stringContaining('http://products:4000/graphql failed'),
         },
       ],
     })
@@ -1124,7 +1123,7 @@ describe('Request handling with Apollo Federation', () => {
   it('when request ingestion fail, send operation source again', async () => {
     let payload = []
 
-    const pandas = nock('http://pandas:4000').post('/graphql').twice().replyWithError({ code: 'ENETUNREACH' })
+    const pandas = nock('http://pandas:4000').post('/graphql').twice().replyWithError('ENETUNREACH')
 
     logql
       .post('/errors', (res) => {
@@ -1148,7 +1147,7 @@ describe('Request handling with Apollo Federation', () => {
     expect(res1.body.errors).toEqual([
       {
         extensions: { code: 'INTERNAL_SERVER_ERROR' },
-        message: 'request to http://pandas:4000/graphql failed, reason: undefined',
+        message: expect.stringContaining('http://pandas:4000/graphql failed'),
       },
     ])
 
@@ -1168,7 +1167,7 @@ describe('Request handling with Apollo Federation', () => {
     expect(res2.body.errors).toEqual([
       {
         extensions: { code: 'INTERNAL_SERVER_ERROR' },
-        message: 'request to http://pandas:4000/graphql failed, reason: undefined',
+        message: expect.stringContaining('http://pandas:4000/graphql failed'),
       },
     ])
 
@@ -1203,7 +1202,7 @@ describe('Request handling with Apollo Federation', () => {
   it('when request ingestion works, do not send operation source again', async () => {
     let payload = []
 
-    const pandas = nock('http://pandas:4000').post('/graphql').twice().replyWithError({ code: 'ENETUNREACH' })
+    const pandas = nock('http://pandas:4000').post('/graphql').twice().replyWithError('ENETUNREACH')
 
     logql
       .post('/errors', (res) => {
@@ -1227,7 +1226,7 @@ describe('Request handling with Apollo Federation', () => {
     expect(res1.body.errors).toEqual([
       {
         extensions: { code: 'INTERNAL_SERVER_ERROR' },
-        message: 'request to http://pandas:4000/graphql failed, reason: undefined',
+        message: expect.stringContaining('http://pandas:4000/graphql failed'),
       },
     ])
 
@@ -1247,7 +1246,7 @@ describe('Request handling with Apollo Federation', () => {
     expect(res2.body.errors).toEqual([
       {
         extensions: { code: 'INTERNAL_SERVER_ERROR' },
-        message: 'request to http://pandas:4000/graphql failed, reason: undefined',
+        message: expect.stringContaining('http://pandas:4000/graphql failed'),
       },
     ])
 

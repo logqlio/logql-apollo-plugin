@@ -1,6 +1,4 @@
 // @ts-check
-const http = require('http')
-const https = require('https')
 const { z } = require('zod')
 const { fromZodError } = require('zod-validation-error')
 
@@ -20,8 +18,6 @@ const ConfigSchema = z.object({
   cacheSize: z.number().int().positive().default(16384),
 
   sampling: z.number().min(0).max(1).default(1.0),
-
-  agent: z.instanceof(http.Agent).or(z.instanceof(https.Agent)).nullable().default(null),
 
   userId: z.function().nullable().default(null),
 })

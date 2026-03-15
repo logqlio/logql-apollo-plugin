@@ -122,13 +122,13 @@
     "@apollo/utils.keyvaluecache" "^4.0.0"
     "@apollo/utils.logger" "^3.0.0"
 
-"@apollo/server-plugin-response-cache@^4.1.4":
-  version "4.1.4"
-  resolved "https://registry.yarnpkg.com/@apollo/server-plugin-response-cache/-/server-plugin-response-cache-4.1.4.tgz#60a29a15086941739c3709b9e903c87d79c35647"
-  integrity sha512-MicQsfTbwIzUc7GCFwY9uOz46ad2q22f4RWy42YEoy4YKGdrnl3X0rfs5GpBliw54nM3fxYIdmvGKeO2W7wMSg==
+"@apollo/server-plugin-response-cache@^5.0.0":
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/@apollo/server-plugin-response-cache/-/server-plugin-response-cache-5.0.0.tgz#4a72178d1adbd35e72bb4d288dba44a2dac1da9b"
+  integrity sha512-q78R0jUP642EjBvfzkAV5HtM0fcoA0/D2tBGQdXPShj6PvcV2UDhaw6Yw/N9rkXKJmFtXZiGyDyOssfWO1cTxw==
   dependencies:
-    "@apollo/utils.createhash" "^2.0.2"
-    "@apollo/utils.keyvaluecache" "^2.1.0"
+    "@apollo/utils.createhash" "^3.0.0"
+    "@apollo/utils.keyvaluecache" "^4.0.0"
 
 "@apollo/server@^5.4.0":
   version "5.4.0"
@@ -164,7 +164,7 @@
   dependencies:
     "@apollo/protobufjs" "1.2.7"
 
-"@apollo/utils.createhash@^2.0.0", "@apollo/utils.createhash@^2.0.2":
+"@apollo/utils.createhash@^2.0.0":
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/@apollo/utils.createhash/-/utils.createhash-2.0.2.tgz#838767c83714354ab36892196b209e45d29745e6"
   integrity sha512-UkS3xqnVFLZ3JFpEmU/2cM2iKJotQXMoSTgxXsfQgXLC5gR1WaepoXagmYnPSA7Q/2cmnyTYK5OgAgoC4RULPg==

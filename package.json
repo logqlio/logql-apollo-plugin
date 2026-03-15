@@ -29,9 +29,9 @@
     "zod-validation-error": "^1.0.1"
   },
   "devDependencies": {
-    "@apollo/gateway": "^2.2.2",
+    "@apollo/gateway": "^2.13.0",
     "@apollo/server": "^5.4.0",
-    "@apollo/server-plugin-response-cache": "^4.1.4",
+    "@apollo/server-plugin-response-cache": "^5.0.0",
     "@eslint/js": "^9.1.1",
     "eslint": "^9.1.1",
     "eslint-config-prettier": "^9.1.0",

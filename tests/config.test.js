@@ -18,12 +18,16 @@ describe('Config Validation', () => {
 
   it('log an error when no config is given', () => {
     expect(initPlugin()).toEqual({})
-    expect(console.error).toHaveBeenCalledWith('[logql-plugin][ERROR][init] Invalid options: Required at "apiKey"')
+    expect(console.error).toHaveBeenCalledWith(
+      '[logql-plugin][ERROR][init] ✖ Invalid input: expected string, received undefined\n  → at apiKey'
+    )
   })
 
   it('log an error when config is empty', () => {
     expect(initPlugin({})).toEqual({})
-    expect(console.error).toHaveBeenCalledWith('[logql-plugin][ERROR][init] Invalid options: Required at "apiKey"')
+    expect(console.error).toHaveBeenCalledWith(
+      '[logql-plugin][ERROR][init] ✖ Invalid input: expected string, received undefined\n  → at apiKey'
+    )
   })
 
   it('work with valid minimal config', () => {
@@ -34,7 +38,9 @@ describe('Config Validation', () => {
   it('ignore env by default', () => {
     process.env.LOGQL_API_KEY = 'logql:FAKE_API_KEY'
     expect(initPlugin({})).toEqual({})
-    expect(console.error).toHaveBeenCalledWith('[logql-plugin][ERROR][init] Invalid options: Required at "apiKey"')
+    expect(console.error).toHaveBeenCalledWith(
+      '[logql-plugin][ERROR][init] ✖ Invalid input: expected string, received undefined\n  → at apiKey'
+    )
   })
 
   it('load config from env', () => {

@@ -7,7 +7,7 @@ const retry = require('async-retry')
 
 const plugin = require('../package.json')
 
-const compress = promisify(gzip)
+const compress = /** @type {(data: string) => Promise<Buffer<ArrayBuffer>>} */ (promisify(gzip))
 
 const userAgent = `logql-apollo-plugin; node ${process.version}; ${os.platform()} ${os.release()}`
 
@@ -55,7 +55,7 @@ async function sendWithRetry(path, data, config, logger) {
       async (bail, attempt) => {
         const res = await config.fetchFn(url, {
           method: 'POST',
-          signal: AbortSignal.timeout(config.timeout),
+          signal: AbortSignal.timeout(timeout),
           headers: {
             'user-agent': userAgent,
             'content-encoding': 'gzip',

@@ -19,12 +19,15 @@ const ConfigSchema = z.object({
 
   sampling: z.number().min(0).max(1).default(1.0),
 
-  fetchFn: z.function().default(() => globalThis.fetch),
+  fetchFn: /** @type {z.ZodDefault<z.ZodType<FetchFn>>} */ (z.function()).default(() => globalThis.fetch),
 
   userId: z.function().nullable().default(null),
 })
 
-/** @typedef {z.infer<typeof ConfigSchema>} Config */
+/**
+ * @typedef {(url: string, init?: RequestInit) => Promise<Pick<Response, 'status'>>} FetchFn
+ * @typedef {z.infer<typeof ConfigSchema>} Config
+ */
 
 /** @param {string} msg */
 function logInitError(msg) {

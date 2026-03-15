@@ -1,5 +1,8 @@
 import type { ApolloServerPlugin, BaseContext } from '@apollo/server'
 
+/** A fetch-compatible function. Defaults to `globalThis.fetch`. */
+export type FetchFunction = (url: string, init?: RequestInit) => Promise<Pick<Response, 'status'>>
+
 export interface LogqlOptions<TContext = Record<string, unknown>> {
   apiKey: string
   environment?: string
@@ -17,7 +20,7 @@ export interface LogqlOptions<TContext = Record<string, unknown>> {
 
   sampling?: number
 
-  fetchFn?: typeof fetch
+  fetchFn?: FetchFunction
 
   userId?: ((context: TContext, headers: unknown, requestContext: unknown) => unknown) | null
 }

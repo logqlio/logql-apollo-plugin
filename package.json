@@ -15,6 +15,7 @@
   },
   "license": "MIT",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "scripts": {
     "test": "jest --colors --verbose",
     "lint": "eslint .",
@@ -49,6 +50,7 @@
     "wrap-ansi": "7.0.0"
   },
   "peerDependencies": {
+    "@apollo/server": ">=4",
     "graphql": "*"
   },
   "jest": {

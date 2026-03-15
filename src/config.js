@@ -1,6 +1,5 @@
 // @ts-check
 const { z } = require('zod')
-const { fromZodError } = require('zod-validation-error')
 
 const ConfigSchema = z.object({
   apiKey: z.string().startsWith('logql:'),
@@ -94,11 +93,7 @@ function getConfig(options) {
     return maybeConfig.data
   }
 
-  const validationError = fromZodError(maybeConfig.error, {
-    prefix: 'Invalid options',
-  })
-
-  logInitError(validationError.message)
+  logInitError(`Invalid options: ${z.prettifyError(maybeConfig.error)}`)
 }
 
 module.exports = { getConfig, loadEnv }

@@ -19,6 +19,8 @@ const ConfigSchema = z.object({
 
   sampling: z.number().min(0).max(1).default(1.0),
 
+  fetchFn: z.function().default(() => globalThis.fetch),
+
   userId: z.function().nullable().default(null),
 })
 

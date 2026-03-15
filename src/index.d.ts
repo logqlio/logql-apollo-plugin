@@ -1,6 +1,4 @@
 import type { ApolloServerPlugin, BaseContext } from '@apollo/server'
-import type * as http from 'http'
-import type * as https from 'https'
 
 export interface LogqlOptions<TContext = Record<string, unknown>> {
   apiKey: string
@@ -19,7 +17,7 @@ export interface LogqlOptions<TContext = Record<string, unknown>> {
 
   sampling?: number
 
-  agent?: http.Agent | https.Agent | null
+  fetchFn?: typeof fetch
 
   userId?: ((context: TContext, headers: unknown, requestContext: unknown) => unknown) | null
 }

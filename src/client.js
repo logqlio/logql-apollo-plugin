@@ -53,7 +53,7 @@ async function sendWithRetry(path, data, config, logger) {
 
     await retry(
       async (bail, attempt) => {
-        const res = await fetch(url, {
+        const res = await config.fetchFn(url, {
           method: 'POST',
           signal: AbortSignal.timeout(config.timeout),
           headers: {

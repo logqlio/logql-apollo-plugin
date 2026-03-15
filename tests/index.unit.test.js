@@ -67,6 +67,7 @@ describe('handleError on sendError rejection', () => {
     )
 
     await waitFor(() => sendWithRetry.mock.calls.length > 0)
+    expect(sendWithRetry).toHaveBeenCalled()
   })
 })
 
@@ -80,6 +81,7 @@ describe('handleError on sendOperation rejection', () => {
     await requestHooks.willSendResponse(makeRequestContext({ errors: undefined }))
 
     await waitFor(() => sendWithRetry.mock.calls.length > 0)
+    expect(sendWithRetry).toHaveBeenCalled()
   })
 })
 
